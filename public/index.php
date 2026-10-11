@@ -111,7 +111,7 @@ a{color:var(--link);text-decoration:none}
         <span><?= $lbl ?> <b class="<?= $m[$k] < 99 ? 'low' : '' ?>"><?= number_format($m[$k], 2) ?>%</b></span>
       <?php endif; endforeach; ?>
       <?php if ($m['ms'] !== null): ?><span>平均回應 <b><?= $m['ms'] ?></b> ms</span><?php endif; ?>
-      <?php if ($m['down']): ?><span>上次中斷 <?= $h(date('m-d H:i', $m['down']['at'])) ?>（<?= max(1, (int) round($m['down']['sec'] / 60)) ?> 分鐘）</span><?php endif; ?>
+      <?php if ($m['down']): ?><span>上次中斷 <?= $h(date(date('Y', $m['down']['at']) === date('Y') ? 'm-d H:i' : 'Y-m-d H:i', $m['down']['at'])) ?>（<?= max(1, (int) round($m['down']['sec'] / 60)) ?> 分鐘）</span><?php endif; ?>
     </div>
   </div>
 <?php endforeach; endif; ?>
