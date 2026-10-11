@@ -5,8 +5,12 @@ declare(strict_types=1);
  * 熊哥 2026-10-11 TG：「先做好戰情室，都透過 zero trust 聯結看內網的測試站」「由戰情室可以點選觀看測試站」。
  *
  * 只在 cora-lab 本機（nginx 127.0.0.1）跑，對外經 Cloudflare Tunnel，登入由 Cloudflare Access
- * （Google Workspace，限 @ccnda.org）把關。網站監控、設備監控等區塊之後加（Asana 1219371344401545）。
+ * （Google Workspace，限 @ccnda.org）把關。設備監控之後加（Asana 1219371344401545）。
+ * 網站監控：UptimeRobot（lib/uptime.php，唯讀金鑰在 state/，快取 60 秒）。
  */
+
+require __DIR__ . '/../lib/uptime.php';
+date_default_timezone_set('Asia/Taipei'); // cora-lab 主機是 UTC，畫面一律台北時間
 
 // 測試站清單：新增一站就加一筆。check 是 cora-lab 本機的健康檢查網址（不經網際網路）。
 $TEST_SITES = [
@@ -66,6 +70,10 @@ h2{font-size:1.05rem;margin:28px 0 10px}
 a{color:var(--link);text-decoration:none}
 .btn{border:1px solid var(--line);border-radius:999px;padding:4px 14px;font-size:.9rem}
 .todo{color:var(--soft);background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:14px 18px}
+.dot.warn{background:#d97706}.dot.paused,.dot.wait{background:#9aa9b3}
+.nums{display:flex;gap:16px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:.9rem}
+.nums b{font-weight:600}.low{color:var(--bad)}
+.notice{color:#8a5a00;background:#fff7e6;border:1px solid #f5d9a8;border-radius:10px;padding:10px 16px;margin:0 0 10px}
 </style>
 </head>
 <body>
@@ -85,8 +93,28 @@ a{color:var(--link);text-decoration:none}
   </div>
 <?php endforeach; ?>
 
-  <h2>網站監控</h2>
-  <div class="todo">建置中：UptimeRobot（外部）＋ cora-lab 探測器，監控清單等熊叔叔確認。</div>
+  <h2>網站監控 <span class="sub">UptimeRobot（從外部檢查）</span></h2>
+<?php [$up, $upMsg] = uptime_data(); ?>
+<?php if ($upMsg !== ''): ?>  <div class="notice"><?= $h($upMsg) ?></div>
+<?php endif; ?>
+<?php if ($up): $mons = array_map('uptime_view', $up['monitors']);
+      $rank = ['bad' => 0, 'warn' => 1, 'wait' => 2, 'paused' => 3, 'ok' => 4];
+      usort($mons, fn($a, $b) => [$rank[$a['cls']] ?? 9, $a['name']] <=> [$rank[$b['cls']] ?? 9, $b['name']]); // 中斷的排最前面 ?>
+  <div class="sub" style="margin:0 0 8px">共 <?= count($mons) ?> 個監控，正常 <?= count(array_filter($mons, fn($m) => $m['cls'] === 'ok')) ?> 個 ・ 資料時間 <?= $h(date('H:i:s', (int) $up['at'])) ?></div>
+<?php foreach ($mons as $m): ?>
+  <div class="card">
+    <span class="dot <?= $h($m['cls']) ?>" title="<?= $h($m['label']) ?>"></span>
+    <span class="name"><?= $h($m['name']) ?>　<span class="sub"><?= $h($m['label']) ?></span></span>
+    <?php if (preg_match('#^https?://#', $m['url'])): ?><a class="btn" href="<?= $h($m['url']) ?>" target="_blank" rel="noopener">開啟</a><?php endif; ?>
+    <div class="nums meta">
+      <?php foreach (['d1' => '24 小時', 'd7' => '7 天', 'd30' => '30 天'] as $k => $lbl): if ($m[$k] !== null && $m['cls'] !== 'paused'): ?>
+        <span><?= $lbl ?> <b class="<?= $m[$k] < 99 ? 'low' : '' ?>"><?= number_format($m[$k], 2) ?>%</b></span>
+      <?php endif; endforeach; ?>
+      <?php if ($m['ms'] !== null): ?><span>平均回應 <b><?= $m['ms'] ?></b> ms</span><?php endif; ?>
+      <?php if ($m['down']): ?><span>上次中斷 <?= $h(date('m-d H:i', $m['down']['at'])) ?>（<?= max(1, (int) round($m['down']['sec'] / 60)) ?> 分鐘）</span><?php endif; ?>
+    </div>
+  </div>
+<?php endforeach; endif; ?>
 
   <h2>設備監控</h2>
   <div class="todo">建置中：Zabbix，設備清單等熊叔叔確認。</div>
