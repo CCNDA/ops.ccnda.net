@@ -9,10 +9,13 @@ declare(strict_types=1);
  * （Google Workspace，限 @ccnda.org）把關。Asana 1219371344401545、1219390021775751。
  * - 任務：tools/asana_summary.py 每小時寫 state/asana_summary.json，這裡只讀檔（不碰權杖）
  * - 網站監控：lib/uptime.php（UptimeRobot 唯讀金鑰在 state/，快取 60 秒）；詳情在 uptime.php
+ * - 數位同工：lib/agents.php（小芯電腦每 2 分鐘傳 state/agents.json；90 分／3 小時燈號）
+ * - 頁面每 60 秒自動重新整理（媽媽 2026-10-11 信：頁面每分鐘自動刷新）
  */
 
 require __DIR__ . '/../lib/page.php';
 require __DIR__ . '/../lib/uptime.php';
+require __DIR__ . '/../lib/agents.php';
 
 // 測試站清單：新增一站就加一筆。check 是 cora-lab 本機的健康檢查網址（不經網際網路）。
 $TEST_SITES = [
@@ -68,7 +71,14 @@ foreach ($mons as $m) {
 }
 $upCls = !$up ? 'wait' : ($cnt['down'] > 0 ? 'bad' : 'ok');
 
-page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cora-lab 檢查');
+// ── 數位同工 ──
+[$ag, $agMsg] = agents_data();
+$agents = $ag ? array_map(fn($r) => agent_view($r, time()), $ag['rows']) : [];
+$agCnt = ['ok' => 0, 'warn' => 0, 'bad' => 0];
+foreach ($agents as $a) { if (isset($agCnt[$a['cls']])) { $agCnt[$a['cls']]++; } }
+$agCls = !$ag ? 'wait' : ($agCnt['bad'] ? 'bad' : ($agCnt['warn'] || array_filter($agents, fn($a) => $a['daily'] !== null) ? 'warn' : 'ok'));
+
+page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cora-lab 檢查 ・ 每分鐘自動更新', 60);
 ?>
   <section class="panel<?= is_array($tasks) && $tasks['counts']['overdue'] > 0 ? '' : '' ?>" id="tasks">
     <div class="panel-hd">
@@ -105,6 +115,53 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       </ul>
     <?php endif; ?>
 <?php endif; ?>
+  </section>
+
+  <section class="panel<?= $agCls === 'bad' ? ' alert' : '' ?>" id="agents">
+    <div class="panel-hd">
+      <span class="dot big <?= h($agCls) ?>"></span>
+      <h2>數位同工</h2>
+      <span class="sub"><?= $ag ? '更新於 ' . h(date('H:i', (int) filemtime(AGENTS_FILE))) . ' ・ 90 分鐘內有心跳＝正常、3 小時內＝延遲' : '' ?></span>
+    </div>
+    <?php if ($agMsg !== ''): ?><div class="notice"><?= h($agMsg) ?></div><?php endif; ?>
+    <?php if ($ag): ?>
+    <div class="inline">
+      <span><b><?= $agCnt['ok'] ?></b> 正常</span>
+      <span><b class="<?= $agCnt['warn'] ? 'red' : '' ?>" style="<?= $agCnt['warn'] ? 'color:#b45309' : '' ?>"><?= $agCnt['warn'] ?></b> 延遲</span>
+      <span><b class="<?= $agCnt['bad'] ? 'red' : '' ?>"><?= $agCnt['bad'] ?></b> 離線</span>
+    </div>
+    <?php
+      $agDetail = function (array $a): string {
+          $v = $a['ver'] !== null ? h($a['runtime'] . ' ' . $a['ver']) . ($a['behind'] ? ' <span class="low">（版本落後）</span>' : '') : h($a['runtime']);
+          $out = '<span>最後心跳 <b>' . h($a['when']) . '</b>' . ($a['ago'] ? '（' . h($a['ago']) . '）' : '') . '</span>'
+               . '<span>' . $v . '</span>'
+               . '<span>7 日額度 <b>' . ($a['quota'] !== null ? h(rtrim(rtrim(number_format($a['quota'], 1), '0'), '.')) . '%' : '–') . '</b></span>';
+          if ($a['note'] !== '') { $out .= '<span style="flex:1 1 100%">這班：' . h(mb_strimwidth($a['note'], 0, 160, '…', 'UTF-8')) . '</span>'; }
+          return $out;
+      };
+      $agProblems = array_values(array_filter($agents, fn($a) => $a['problem']));
+      $agFine = array_values(array_filter($agents, fn($a) => !$a['problem']));
+    ?>
+    <div style="margin-top:12px">
+    <?php foreach ($agProblems as $a): ?>
+      <div class="card">
+        <span class="dot <?= h($a['cls']) ?>" title="<?= h($a['live']) ?>"></span>
+        <span class="name"><?= h($a['name']) ?>　<span class="sub"><?= h($a['live']) ?></span><?= $a['daily'] !== null ? '<span class="tag bad">' . h($a['daily']) . '</span>' : '' ?></span>
+        <div class="nums meta"><?= $agDetail($a) ?></div>
+      </div>
+    <?php endforeach; ?>
+    <?php if ($agFine): ?>
+      <div class="chips">
+      <?php foreach ($agFine as $a): ?>
+        <details class="chip">
+          <summary><span class="dot <?= h($a['cls']) ?>" title="<?= h($a['live']) ?>"></span><?= h($a['name']) ?> <span class="sub"><?= h($a['when']) ?></span></summary>
+          <div class="nums meta"><?= $agDetail($a) ?></div>
+        </details>
+      <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+    </div>
+    <?php endif; ?>
   </section>
 
   <section class="panel<?= $upCls === 'bad' ? ' alert' : '' ?>">

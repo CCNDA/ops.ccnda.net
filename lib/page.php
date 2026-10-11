@@ -10,7 +10,7 @@ function h(?string $s): string
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-function page_head(string $title, string $sub): void
+function page_head(string $title, string $sub, int $refresh = 0): void
 {
     header('Cache-Control: no-store');
     header('X-Frame-Options: DENY');
@@ -21,7 +21,8 @@ function page_head(string $title, string $sub): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title><?= h($title) ?></title>
+<?php if ($refresh > 0): ?><meta http-equiv="refresh" content="<?= $refresh ?>">
+<?php endif; ?><title><?= h($title) ?></title>
 <style>
 :root{--bg:#f4f7fa;--card:#fff;--ink:#14303c;--soft:#5c7482;--line:#e2e8ee;--ok:#1a7f4b;--bad:#b42318;--warn:#d97706;--link:#0e6d94}
 *{box-sizing:border-box}
@@ -72,6 +73,8 @@ a:hover{text-decoration:underline}
 .chip summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:.92rem}
 .chip summary::-webkit-details-marker{display:none}
 .chip .nums{margin-top:6px}
+.tag{display:inline-block;font-size:.76rem;padding:0 9px;border-radius:10px;border:1px solid currentColor;margin-left:6px;font-weight:400}
+.tag.bad{color:var(--bad)}.tag.warn{color:#b45309}
 .notice{color:#8a5a00;background:#fff7e6;border:1px solid #f5d9a8;border-radius:10px;padding:10px 16px;margin:0 0 10px}
 </style>
 </head>
