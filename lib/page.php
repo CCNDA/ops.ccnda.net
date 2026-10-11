@@ -28,8 +28,7 @@ function page_head(string $title, string $sub, int $refresh = 0): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<?php if ($refresh > 0): ?><meta http-equiv="refresh" content="<?= $refresh ?>">
-<?php endif; ?><title><?= h($title) ?></title>
+<title><?= h($title) ?></title>
 <link rel="icon" type="image/png" href="/assets/logo-ccnda.png">
 <style>
 :root{--bg:#f4f7fa;--card:#fff;--ink:#14303c;--soft:#5c7482;--line:#e2e8ee;--ok:#1a7f4b;--bad:#b42318;--warn:#d97706;--link:#0e6d94}
@@ -50,6 +49,12 @@ footer{margin-top:40px;border-top:1px solid var(--line);background:var(--card)}
 h2{font-size:1.05rem;margin:28px 0 10px}
 a{color:var(--link);text-decoration:none}
 a:hover{text-decoration:underline}
+.sub a,.notice a,.meta a,.inline a{text-decoration:underline;text-underline-offset:2px}
+:focus-visible{outline:3px solid var(--link);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:8px;background:#fff;color:var(--link);padding:8px 14px;border-radius:8px;z-index:10}
+.skip:focus{left:12px}
+.rf{font:inherit;font-size:.82rem;color:var(--link);background:none;border:1px solid var(--line);border-radius:999px;padding:1px 10px;cursor:pointer;margin-left:4px}
+.rf[aria-pressed=true]{color:#8a5a00;border-color:#f5d9a8;background:#fff7e6}
 .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;display:inline-block}
 .dot.big{width:18px;height:18px}
 .dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}.dot.warn{background:var(--warn)}.dot.paused,.dot.wait{background:#9aa9b3}
@@ -125,11 +130,27 @@ a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
+<a class="skip" href="#main">跳到主要內容</a>
 <header><div class="wrap">
   <h1><a href="/"><img class="brand" src="/assets/logo-ccnda.png" alt="">CCNDA 戰情室</a></h1>
-  <div class="sub"><?= h($sub) ?></div>
+  <div class="sub"><?= h($sub) ?><?php if ($refresh > 0): ?> <button type="button" id="rf" class="rf" aria-pressed="false">暫停自動更新</button><?php endif; ?></div>
 </div></header>
-<main class="wrap">
+<main class="wrap" id="main">
+<?php if ($refresh > 0): ?>
+<script>
+(function(){
+  var KEY = 'ops-refresh-paused', btn = document.getElementById('rf'), paused = false;
+  try { paused = localStorage.getItem(KEY) === '1'; } catch (e) {}
+  function show(){ btn.setAttribute('aria-pressed', paused ? 'true' : 'false'); btn.textContent = paused ? '已暫停・恢復自動更新' : '暫停自動更新'; }
+  btn.addEventListener('click', function(){ paused = !paused; try { localStorage.setItem(KEY, paused ? '1' : '0'); } catch (e) {} show(); });
+  show();
+  setInterval(function(){
+    var busy = document.querySelector('details[open]') || (document.activeElement && document.activeElement !== document.body && document.activeElement !== btn);
+    if (!paused && !busy) location.reload();
+  }, <?= (int) $refresh ?> * 1000);
+})();
+</script>
+<?php endif; ?>
 <?php
 }
 
