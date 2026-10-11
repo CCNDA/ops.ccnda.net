@@ -1,16 +1,18 @@
 <?php
 declare(strict_types=1);
 /**
- * CCNDA 戰情室 ops.ccnda.net —— 第一版：從這裡點進內網的測試站。
- * 熊哥 2026-10-11 TG：「先做好戰情室，都透過 zero trust 聯結看內網的測試站」「由戰情室可以點選觀看測試站」。
+ * CCNDA 戰情室 ops.ccnda.net —— 首頁：摘要卡（任務、網站監控、設備監控）＋測試站。
+ * 熊哥 2026-10-11 TG：「先做好戰情室，都透過 zero trust 聯結看內網的測試站」；
+ *   20:54「我要類似這樣 任務要讀 asana」（大蘇 it.ccra.tw/ops 的摘要卡版面）；「不用全部展開，有問題在展開就好」。
  *
  * 只在 cora-lab 本機（nginx 127.0.0.1）跑，對外經 Cloudflare Tunnel，登入由 Cloudflare Access
- * （Google Workspace，限 @ccnda.org）把關。設備監控之後加（Asana 1219371344401545）。
- * 網站監控：UptimeRobot（lib/uptime.php，唯讀金鑰在 state/，快取 60 秒）。
+ * （Google Workspace，限 @ccnda.org）把關。Asana 1219371344401545、1219390021775751。
+ * - 任務：tools/asana_summary.py 每小時寫 state/asana_summary.json，這裡只讀檔（不碰權杖）
+ * - 網站監控：lib/uptime.php（UptimeRobot 唯讀金鑰在 state/，快取 60 秒）；詳情在 uptime.php
  */
 
+require __DIR__ . '/../lib/page.php';
 require __DIR__ . '/../lib/uptime.php';
-date_default_timezone_set('Asia/Taipei'); // cora-lab 主機是 UTC，畫面一律台北時間
 
 // 測試站清單：新增一站就加一筆。check 是 cora-lab 本機的健康檢查網址（不經網際網路）。
 $TEST_SITES = [
@@ -42,115 +44,105 @@ function site_status(string $url): array
     return ['ok' => $code >= 200 && $code < 400, 'code' => $code, 'ms' => $ms, 'version' => $ver];
 }
 
-$h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-$checkedAt = date('Y-m-d H:i:s');
+// ── 任務（Asana）──
+const TASK_STATS = [
+    'today_due'  => '今日到期',
+    'today_done' => '今日完成',
+    'month_due'  => '當月到期',
+    'month_done' => '當月完成',
+    'overdue'    => '逾期',
+];
+$tasks = json_decode((string) @file_get_contents(__DIR__ . '/../state/asana_summary.json'), true);
+$list = (string) ($_GET['list'] ?? '');
+if (!isset(TASK_STATS[$list])) {
+    $list = '';
+}
+$taskStale = is_array($tasks) && time() - (int) $tasks['at'] > 3 * 3600; // 超過 3 小時沒更新＝排程可能停了
+
+// ── 網站監控摘要 ──
+[$up, $upMsg] = uptime_data();
+$mons = $up ? array_map('uptime_view', $up['monitors']) : [];
+$cnt = ['ok' => 0, 'down' => 0, 'paused' => 0];
+foreach ($mons as $m) {
+    $cnt[$m['cls'] === 'ok' ? 'ok' : ($m['cls'] === 'paused' ? 'paused' : 'down')]++;
+}
+$upCls = !$up ? 'wait' : ($cnt['down'] > 0 ? 'bad' : 'ok');
+
+page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cora-lab 檢查');
 ?>
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
-<title>CCNDA 戰情室</title>
-<style>
-:root{--bg:#f4f7fa;--card:#fff;--ink:#14303c;--soft:#5c7482;--line:#e2e8ee;--ok:#1a7f4b;--bad:#b42318;--link:#0e6d94}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.7}
-header{background:var(--card);border-bottom:1px solid var(--line)}
-.wrap{max-width:960px;margin:0 auto;padding:16px 20px}
-h1{margin:0;font-size:1.3rem;letter-spacing:.08em}
-.sub{color:var(--soft);font-size:.85rem}
-h2{font-size:1.05rem;margin:28px 0 10px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:0 0 10px;
-  display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
-.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
-.name{font-weight:700;flex:1 1 14em}
-.meta{color:var(--soft);font-size:.82rem;flex:1 1 100%}
-a{color:var(--link);text-decoration:none}
-.btn{border:1px solid var(--line);border-radius:999px;padding:4px 14px;font-size:.9rem}
-.todo{color:var(--soft);background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:14px 18px}
-.dot.warn{background:#d97706}.dot.paused,.dot.wait{background:#9aa9b3}
-.nums{display:flex;gap:16px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:.9rem}
-.nums b{font-weight:600}.low{color:var(--bad)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;flex:0 1 auto}
-.chip[open]{flex:1 1 100%}
-.chip summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:.92rem}
-.chip summary::-webkit-details-marker{display:none}
-.chip .nums{margin-top:6px}
-.notice{color:#8a5a00;background:#fff7e6;border:1px solid #f5d9a8;border-radius:10px;padding:10px 16px;margin:0 0 10px}
-</style>
-</head>
-<body>
-<header><div class="wrap">
-  <h1>CCNDA 戰情室</h1>
-  <div class="sub">內部使用 ・ 狀態在 <?= $h($checkedAt) ?> 從 cora-lab 檢查</div>
-</div></header>
-<main class="wrap">
+  <section class="panel<?= is_array($tasks) && $tasks['counts']['overdue'] > 0 ? '' : '' ?>" id="tasks">
+    <div class="panel-hd">
+      <h2>📋 任務（Asana）</h2>
+      <?php if (is_array($tasks)): ?>
+        <span class="sub">更新於 <?= h(date('H:i', (int) $tasks['at'])) ?> ・ 每小時更新 ・ <a href="https://app.asana.com/" target="_blank" rel="noopener">開啟 Asana</a></span>
+      <?php endif; ?>
+    </div>
+<?php if (!is_array($tasks)): ?>
+    <p class="todo">還沒有任務資料（等 tools/asana_summary.py 第一次執行）。</p>
+<?php else: ?>
+    <?php if ($taskStale): ?><div class="notice">任務資料超過 3 小時沒有更新，排程可能停了。</div><?php endif; ?>
+    <div class="stats">
+      <?php foreach (TASK_STATS as $k => $label): ?>
+        <a class="stat<?= $k === 'overdue' && $tasks['counts'][$k] > 0 ? ' red' : '' ?><?= $list === $k ? ' on' : '' ?>"
+           href="<?= $list === $k ? '/' : '?list=' . $k ?>#tasks"><b><?= (int) $tasks['counts'][$k] ?></b><span><?= h($label) ?></span></a>
+      <?php endforeach; ?>
+    </div>
+    <p class="note">點上面的數字看清單。未完成共 <?= (int) $tasks['open_total'] ?> 件，其中 <?= (int) $tasks['open_no_due'] ?> 件沒有設到期日。</p>
+    <?php if ($list !== ''): $items = $tasks['lists'][$list] ?? []; ?>
+      <ul class="list">
+        <?php foreach ($items as $t): ?>
+          <li>
+            <span class="t"><?= preg_match('#^https://app\.asana\.com/#', (string) $t['url']) ? '<a href="' . h($t['url']) . '" target="_blank" rel="noopener">' . h($t['name']) . '</a>' : h($t['name']) ?></span>
+            <span class="m"><?= h($t['who'] ?? '未指派') ?></span>
+            <?php if (in_array($list, ['today_done', 'month_done'], true)): ?>
+              <span class="m">完成 <?= $t['done_at'] ? h(date('m-d H:i', strtotime($t['done_at']))) : '' ?></span>
+            <?php else: ?>
+              <span class="m<?= $t['due'] && $t['due'] < $tasks['today'] ? ' late' : '' ?>">到期 <?= h($t['due'] ?? '—') ?></span>
+            <?php endif; ?>
+          </li>
+        <?php endforeach; ?>
+        <?php if (!$items): ?><li><span class="t sub">沒有</span></li><?php endif; ?>
+      </ul>
+    <?php endif; ?>
+<?php endif; ?>
+  </section>
+
+  <section class="panel<?= $upCls === 'bad' ? ' alert' : '' ?>">
+    <div class="panel-hd">
+      <span class="dot big <?= h($upCls) ?>"></span>
+      <h2>網站監控</h2>
+      <span class="sub"><?= $up ? '更新於 ' . h(date('H:i', (int) $up['at'])) . ' ・ ' : '' ?><a href="/uptime.php">點這裡看詳情 →</a></span>
+    </div>
+    <?php if ($upMsg !== ''): ?><div class="notice"><?= h($upMsg) ?></div><?php endif; ?>
+    <?php if ($up): ?>
+    <div class="inline">
+      <span><b><?= $cnt['ok'] ?></b> 正常</span>
+      <span><b class="<?= $cnt['down'] ? 'red' : '' ?>"><?= $cnt['down'] ?></b> 中斷／疑似中斷</span>
+      <span><b><?= $cnt['paused'] ?></b> 暫停監測</span>
+    </div>
+    <?php if ($cnt['down']): ?>
+      <p class="note">有狀況：<?= h(implode('、', array_map(fn($m) => $m['name'], array_filter($mons, fn($m) => !in_array($m['cls'], ['ok', 'paused'], true))))) ?></p>
+    <?php endif; ?>
+    <?php endif; ?>
+  </section>
+
+  <section class="panel">
+    <div class="panel-hd">
+      <span class="dot big wait"></span>
+      <h2>設備監控</h2>
+      <span class="sub">Zabbix</span>
+    </div>
+    <p class="todo">建置中：設備清單等熊叔叔確認。</p>
+  </section>
+
   <h2>測試站</h2>
 <?php foreach ($TEST_SITES as $s): $st = site_status($s['check']); ?>
   <div class="card">
     <span class="dot <?= $st['ok'] ? 'ok' : 'bad' ?>" title="<?= $st['ok'] ? '正常' : '連不到' ?>"></span>
-    <span class="name"><?= $h($s['name']) ?><?= $st['version'] ? '　<span class="sub">v' . $h($st['version']) . '</span>' : '' ?></span>
-    <a class="btn" href="<?= $h($s['url']) ?>" target="_blank" rel="noopener">開啟測試站</a>
-    <a class="btn" href="<?= $h($s['prod']) ?>" target="_blank" rel="noopener">對照正式站</a>
-    <div class="meta"><?= $st['ok'] ? '正常' : '⚠️ 連不到' ?>（HTTP <?= $st['code'] ?: '—' ?>，<?= $st['ms'] ?> ms）・ <?= $h($s['note']) ?></div>
+    <span class="name"><?= h($s['name']) ?><?= $st['version'] ? '　<span class="sub">v' . h($st['version']) . '</span>' : '' ?></span>
+    <a class="btn" href="<?= h($s['url']) ?>" target="_blank" rel="noopener">開啟測試站</a>
+    <a class="btn" href="<?= h($s['prod']) ?>" target="_blank" rel="noopener">對照正式站</a>
+    <div class="meta"><?= $st['ok'] ? '正常' : '⚠️ 連不到' ?>（HTTP <?= $st['code'] ?: '—' ?>，<?= $st['ms'] ?> ms）・ <?= h($s['note']) ?></div>
   </div>
 <?php endforeach; ?>
-
-  <h2>網站監控 <span class="sub">UptimeRobot（從外部檢查）</span></h2>
-<?php [$up, $upMsg] = uptime_data(); ?>
-<?php if ($upMsg !== ''): ?>  <div class="notice"><?= $h($upMsg) ?></div>
-<?php endif; ?>
-<?php if ($up): $mons = array_map('uptime_view', $up['monitors']);
-      $rank = ['bad' => 0, 'warn' => 1, 'wait' => 2, 'paused' => 3, 'ok' => 4];
-      usort($mons, fn($a, $b) => [$rank[$a['cls']] ?? 9, $a['name']] <=> [$rank[$b['cls']] ?? 9, $b['name']]); // 中斷的排最前面 ?>
-  <div class="sub" style="margin:0 0 8px">共 <?= count($mons) ?> 個監控（正常的收起來，點名稱可展開），正常 <?= count(array_filter($mons, fn($m) => $m['cls'] === 'ok')) ?> 個 ・ 資料時間 <?= $h(date('H:i:s', (int) $up['at'])) ?></div>
-<?php
-      // 有問題＝中斷／疑似中斷／尚未檢查，或 24 小時可用率 < 99%：直接展開成完整卡片；其他收合成小方塊，點了才展開
-      $isProblem = fn($m) => in_array($m['cls'], ['bad', 'warn', 'wait'], true) || ($m['cls'] === 'ok' && $m['d1'] !== null && $m['d1'] < 99);
-      $detail = function (array $m) use ($h): string {
-          $out = '';
-          foreach (['d1' => '24 小時', 'd7' => '7 天', 'd30' => '30 天'] as $k => $lbl) {
-              if ($m[$k] !== null && $m['cls'] !== 'paused') {
-                  $out .= '<span>' . $lbl . ' <b class="' . ($m[$k] < 99 ? 'low' : '') . '">' . number_format($m[$k], 2) . '%</b></span>';
-              }
-          }
-          if ($m['ms'] !== null) { $out .= '<span>平均回應 <b>' . $m['ms'] . '</b> ms</span>'; }
-          if ($m['down']) {
-              $fmt = date('Y', $m['down']['at']) === date('Y') ? 'm-d H:i' : 'Y-m-d H:i';
-              $out .= '<span>上次中斷 ' . $h(date($fmt, $m['down']['at'])) . '（' . max(1, (int) round($m['down']['sec'] / 60)) . ' 分鐘）</span>';
-          }
-          if (preg_match('#^https?://#', $m['url'])) {
-              $out .= '<span><a href="' . $h($m['url']) . '" target="_blank" rel="noopener">開啟網站 ↗</a></span>';
-          }
-          return $out;
-      };
-      $problems = array_values(array_filter($mons, $isProblem));
-      $fine = array_values(array_filter($mons, fn($m) => !$isProblem($m)));
-?>
-<?php foreach ($problems as $m): ?>
-  <div class="card">
-    <span class="dot <?= $h($m['cls']) ?>" title="<?= $h($m['label']) ?>"></span>
-    <span class="name"><?= $h($m['name']) ?>　<span class="sub"><?= $h($m['label']) ?></span></span>
-    <div class="nums meta"><?= $detail($m) ?></div>
-  </div>
-<?php endforeach; ?>
-<?php if ($fine): ?>
-  <div class="chips">
-<?php foreach ($fine as $m): ?>
-    <details class="chip">
-      <summary><span class="dot <?= $h($m['cls']) ?>" title="<?= $h($m['label']) ?>"></span><?= $h($m['name']) ?></summary>
-      <div class="nums meta"><?= $m['cls'] === 'paused' ? '<span>暫停監控</span>' : '' ?><?= $detail($m) ?></div>
-    </details>
-<?php endforeach; ?>
-  </div>
-<?php endif; ?>
-<?php endif; ?>
-
-  <h2>設備監控</h2>
-  <div class="todo">建置中：Zabbix，設備清單等熊叔叔確認。</div>
-</main>
-</body>
-</html>
+<?php page_foot();
