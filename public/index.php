@@ -121,7 +121,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <div class="panel-hd">
       <span class="dot big <?= h($agCls) ?>"></span>
       <h2>數位同工</h2>
-      <span class="sub"><?= $ag ? '更新於 ' . h(date('H:i', (int) filemtime(AGENTS_FILE))) . ' ・ 90 分鐘內有心跳＝正常、3 小時內＝延遲' : '' ?></span>
+      <span class="sub"><?= $ag ? '更新於 ' . h(date('H:i', (int) filemtime(AGENTS_FILE))) . ' ・ 90 分鐘內有心跳＝正常、3 小時內＝延遲 ・ 電池＝7 日額度剩餘，黑線＝7 日時間剩餘（電量在黑線左邊＝會提早用完）' : '' ?></span>
     </div>
     <?php if ($agMsg !== ''): ?><div class="notice"><?= h($agMsg) ?></div><?php endif; ?>
     <?php if ($ag): ?>
@@ -138,8 +138,15 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
           $cls = $p <= 10 ? ' bad' : ($p <= 30 ? ' warn' : '');
           $txt = rtrim(rtrim(number_format($p, 1), '0'), '.') . '%';
           $tip = '7 日額度剩 ' . $txt . ($a['reset'] ? '，' . date('n/j H:i', $a['reset']) . ' 重置' : '');
+          // 時間線：這 7 天還剩多少時間（重置前 7 天起算）。電量在線的左邊＝用得比時間快，會提早用完
+          $line = '';
+          if ($a['reset']) {
+              $t = max(0.0, min(100.0, ($a['reset'] - time()) / (7 * 86400) * 100));
+              $line = '<span class="tl" style="left:' . round($t) . '%"></span>';
+              $tip .= '；時間剩 ' . round($t) . '%' . ($p < $t ? '（用得比時間快，可能提早用完）' : '');
+          }
           return '<span class="meter' . $cls . '" title="' . h($tip) . '" aria-label="' . h($tip) . '">'
-               . '<span class="bar"><span class="fill" style="width:' . round($p) . '%"></span></span>' . h($txt) . '</span>';
+               . '<span class="bar"><span class="fill" style="width:' . round($p) . '%"></span>' . $line . '</span>' . h($txt) . '</span>';
       };
       // 重置倒數：一天以上寫「還有 N 天 H 小時」，不到一天寫「還有 H 小時 M 分」
       $agLeft = function (int $reset): string {
