@@ -2,3 +2,7 @@
 .env
 /storage/
 *.log
+
+# 修改紀錄只放 NAS（熊哥 2026-10-11 定），不進版控
+.history/
+/history/
