@@ -73,6 +73,12 @@ a{color:var(--link);text-decoration:none}
 .dot.warn{background:#d97706}.dot.paused,.dot.wait{background:#9aa9b3}
 .nums{display:flex;gap:16px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:.9rem}
 .nums b{font-weight:600}.low{color:var(--bad)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;flex:0 1 auto}
+.chip[open]{flex:1 1 100%}
+.chip summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:.92rem}
+.chip summary::-webkit-details-marker{display:none}
+.chip .nums{margin-top:6px}
 .notice{color:#8a5a00;background:#fff7e6;border:1px solid #f5d9a8;border-radius:10px;padding:10px 16px;margin:0 0 10px}
 </style>
 </head>
@@ -100,21 +106,48 @@ a{color:var(--link);text-decoration:none}
 <?php if ($up): $mons = array_map('uptime_view', $up['monitors']);
       $rank = ['bad' => 0, 'warn' => 1, 'wait' => 2, 'paused' => 3, 'ok' => 4];
       usort($mons, fn($a, $b) => [$rank[$a['cls']] ?? 9, $a['name']] <=> [$rank[$b['cls']] ?? 9, $b['name']]); // 中斷的排最前面 ?>
-  <div class="sub" style="margin:0 0 8px">共 <?= count($mons) ?> 個監控，正常 <?= count(array_filter($mons, fn($m) => $m['cls'] === 'ok')) ?> 個 ・ 資料時間 <?= $h(date('H:i:s', (int) $up['at'])) ?></div>
-<?php foreach ($mons as $m): ?>
+  <div class="sub" style="margin:0 0 8px">共 <?= count($mons) ?> 個監控（正常的收起來，點名稱可展開），正常 <?= count(array_filter($mons, fn($m) => $m['cls'] === 'ok')) ?> 個 ・ 資料時間 <?= $h(date('H:i:s', (int) $up['at'])) ?></div>
+<?php
+      // 有問題＝中斷／疑似中斷／尚未檢查，或 24 小時可用率 < 99%：直接展開成完整卡片；其他收合成小方塊，點了才展開
+      $isProblem = fn($m) => in_array($m['cls'], ['bad', 'warn', 'wait'], true) || ($m['cls'] === 'ok' && $m['d1'] !== null && $m['d1'] < 99);
+      $detail = function (array $m) use ($h): string {
+          $out = '';
+          foreach (['d1' => '24 小時', 'd7' => '7 天', 'd30' => '30 天'] as $k => $lbl) {
+              if ($m[$k] !== null && $m['cls'] !== 'paused') {
+                  $out .= '<span>' . $lbl . ' <b class="' . ($m[$k] < 99 ? 'low' : '') . '">' . number_format($m[$k], 2) . '%</b></span>';
+              }
+          }
+          if ($m['ms'] !== null) { $out .= '<span>平均回應 <b>' . $m['ms'] . '</b> ms</span>'; }
+          if ($m['down']) {
+              $fmt = date('Y', $m['down']['at']) === date('Y') ? 'm-d H:i' : 'Y-m-d H:i';
+              $out .= '<span>上次中斷 ' . $h(date($fmt, $m['down']['at'])) . '（' . max(1, (int) round($m['down']['sec'] / 60)) . ' 分鐘）</span>';
+          }
+          if (preg_match('#^https?://#', $m['url'])) {
+              $out .= '<span><a href="' . $h($m['url']) . '" target="_blank" rel="noopener">開啟網站 ↗</a></span>';
+          }
+          return $out;
+      };
+      $problems = array_values(array_filter($mons, $isProblem));
+      $fine = array_values(array_filter($mons, fn($m) => !$isProblem($m)));
+?>
+<?php foreach ($problems as $m): ?>
   <div class="card">
     <span class="dot <?= $h($m['cls']) ?>" title="<?= $h($m['label']) ?>"></span>
     <span class="name"><?= $h($m['name']) ?>　<span class="sub"><?= $h($m['label']) ?></span></span>
-    <?php if (preg_match('#^https?://#', $m['url'])): ?><a class="btn" href="<?= $h($m['url']) ?>" target="_blank" rel="noopener">開啟</a><?php endif; ?>
-    <div class="nums meta">
-      <?php foreach (['d1' => '24 小時', 'd7' => '7 天', 'd30' => '30 天'] as $k => $lbl): if ($m[$k] !== null && $m['cls'] !== 'paused'): ?>
-        <span><?= $lbl ?> <b class="<?= $m[$k] < 99 ? 'low' : '' ?>"><?= number_format($m[$k], 2) ?>%</b></span>
-      <?php endif; endforeach; ?>
-      <?php if ($m['ms'] !== null): ?><span>平均回應 <b><?= $m['ms'] ?></b> ms</span><?php endif; ?>
-      <?php if ($m['down']): ?><span>上次中斷 <?= $h(date(date('Y', $m['down']['at']) === date('Y') ? 'm-d H:i' : 'Y-m-d H:i', $m['down']['at'])) ?>（<?= max(1, (int) round($m['down']['sec'] / 60)) ?> 分鐘）</span><?php endif; ?>
-    </div>
+    <div class="nums meta"><?= $detail($m) ?></div>
   </div>
-<?php endforeach; endif; ?>
+<?php endforeach; ?>
+<?php if ($fine): ?>
+  <div class="chips">
+<?php foreach ($fine as $m): ?>
+    <details class="chip">
+      <summary><span class="dot <?= $h($m['cls']) ?>" title="<?= $h($m['label']) ?>"></span><?= $h($m['name']) ?></summary>
+      <div class="nums meta"><?= $m['cls'] === 'paused' ? '<span>暫停監控</span>' : '' ?><?= $detail($m) ?></div>
+    </details>
+<?php endforeach; ?>
+  </div>
+<?php endif; ?>
+<?php endif; ?>
 
   <h2>設備監控</h2>
   <div class="todo">建置中：Zabbix，設備清單等熊叔叔確認。</div>
