@@ -9,7 +9,7 @@ declare(strict_types=1);
  * （Google Workspace，限 @ccnda.org）把關。Asana 1219371344401545、1219390021775751。
  * - 任務：tools/asana_summary.py 每小時寫 state/asana_summary.json，這裡只讀檔（不碰權杖）
  * - 網站監控：lib/uptime.php（UptimeRobot 唯讀金鑰在 state/，快取 60 秒）；詳情在 uptime.php
- * - 數位同工：lib/agents.php（小芯電腦每 2 分鐘傳 state/agents.json；90 分／3 小時燈號）
+ * - 數位同工：lib/agents.php（小芯電腦每 2 分鐘傳 state/agents.json；60 分／3 小時燈號）
  * - 頁面每 60 秒自動重新整理（媽媽 2026-10-11 信：頁面每分鐘自動刷新）
  */
 
@@ -121,7 +121,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <div class="panel-hd">
       <span class="dot big <?= h($agCls) ?>"></span>
       <h2>數位同工</h2>
-      <span class="sub"><?= $ag ? '更新於 ' . h(date('H:i', (int) filemtime(AGENTS_FILE))) . ' ・ 90 分鐘內有心跳＝正常、3 小時內＝延遲 ・ 電池＝7 日額度剩餘，下方灰條＝7 日時間剩餘（綠色比灰條短＝可能提早用完）' : '' ?></span>
+      <span class="sub"><?= $ag ? '更新於 ' . h(date('H:i', (int) filemtime(AGENTS_FILE))) . ' ・ ' . AGENTS_GREEN_MIN . ' 分鐘內有心跳＝正常、3 小時內＝延遲 ・ 電池＝7 日額度剩餘，下方灰條＝7 日時間剩餘（綠色比灰條短＝可能提早用完）' : '' ?></span>
     </div>
     <?php if ($agMsg !== ''): ?><div class="notice"><?= h($agMsg) ?></div><?php endif; ?>
     <?php if ($ag): ?>

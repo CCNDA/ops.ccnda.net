@@ -5,7 +5,8 @@ declare(strict_types=1);
  * 數位同工即時狀態（戰情室卡片；Asana 1219390262350870）。
  *
  * 媽媽 2026-10-11 信（熊哥 TG 按鈕「照 90分／3小時」）：
- *   即時燈號看最後一次心跳距今：≤ 90 分＝正常（綠）、90 分–3 小時＝延遲（黃）、> 3 小時＝離線（紅）
+ *   即時燈號看最後一次心跳距今：≤ 60 分＝正常（綠）、60 分–3 小時＝延遲（黃）、> 3 小時＝離線（紅）
+ *   （2026-10-12 熊哥改 60 分；原本 90 分）
  *   第二道沿用早報：heartbeat_check.py 判讀不是 alive（今天 07:00 後沒有排程心跳等）＝標「今日未報到」
  *
  * 資料：state/agents.json —— 小芯電腦每 2 分鐘跑共用技能 heartbeat_check.py --json 傳上來（判讀不另寫一套）。
@@ -13,7 +14,7 @@ declare(strict_types=1);
  */
 
 const AGENTS_FILE = __DIR__ . '/../state/agents.json';
-const AGENTS_GREEN_MIN = 90;
+const AGENTS_GREEN_MIN = 60;  // 熊哥 2026-10-12：「心跳改成60分鐘」（原 90）
 const AGENTS_YELLOW_MIN = 180;
 const AGENTS_STALE_SEC = 600;
 
@@ -76,7 +77,7 @@ function agent_view(array $r, int $now): array
         'quota'   => $quota,
         'reset'   => $reset ?: null,
         'note'    => (string) ($r['note'] ?? ''),
-        // 只看 90 分鐘心跳（熊哥 2026-10-12：「戰情室應該不用算今日報到 因為都需要90分鐘內報到」）
+        // 只看即時心跳燈號（熊哥 2026-10-12：「戰情室應該不用算今日報到 因為都需要90分鐘內報到」）
         'problem' => $cls !== 'ok',
     ];
 }
