@@ -53,6 +53,12 @@ a:hover{text-decoration:underline}
 .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;display:inline-block}
 .dot.big{width:18px;height:18px}
 .dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}.dot.warn{background:var(--warn)}.dot.paused,.dot.wait{background:#9aa9b3}
+.meter{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--soft);white-space:nowrap}
+.meter .bar{position:relative;width:30px;height:12px;border:1.5px solid #8a9aa5;border-radius:3px;background:#fff;padding:1px;display:inline-block;box-sizing:border-box;margin-right:3px}
+.meter .bar::after{content:"";position:absolute;right:-4px;top:2.5px;width:2px;height:4px;background:#8a9aa5;border-radius:0 1px 1px 0}
+.meter .fill{display:block;height:100%;border-radius:1px;background:var(--ok)}
+.meter.warn .fill{background:var(--warn)}.meter.warn{color:#b45309}
+.meter.bad .fill{background:var(--bad)}.meter.bad{color:var(--bad);font-weight:600}
 /* 摘要卡 */
 .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:0 0 16px;box-shadow:0 1px 3px rgba(20,48,60,.05)}
 .panel.alert{border-color:#f1a7a1}
@@ -86,7 +92,7 @@ a:hover{text-decoration:underline}
 .chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:0}
 .chip[open]{grid-column:1/-1}
 .chip summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:.92rem;min-width:0}
-.chip summary .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip summary .nm{flex:1 1 auto;min-width:2.2em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip summary .sub{flex:0 0 auto}
 .clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .chip summary::-webkit-details-marker{display:none}
@@ -95,6 +101,7 @@ a:hover{text-decoration:underline}
 .tag.bad{color:var(--bad)}.tag.warn{color:#b45309}
 /* 手機（熊哥：「手機排版不好看」）*/
 @media (max-width:600px){
+  .chips{grid-template-columns:1fr 1fr}.chip{padding:6px 8px}.chip summary{gap:5px}.meter .bar{width:24px}
   .wrap{padding:12px}
   .panel{padding:14px;border-radius:12px;margin-bottom:12px}
   .panel-hd{gap:8px;margin-bottom:10px}

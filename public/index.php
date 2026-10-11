@@ -131,12 +131,29 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       <span><b class="<?= $agCnt['bad'] ? 'red' : '' ?>"><?= $agCnt['bad'] ?></b> 離線</span>
     </div>
     <?php
-      $agDetail = function (array $a): string {
+      // 7 日額度電池：像手機電量一樣顯示「剩下」多少（剩 30% 以下橘、10% 以下紅）；沒有額度資料就不畫
+      $agMeter = function (array $a): string {
+          if ($a['quota'] === null) { return ''; }
+          $p = 100.0 - max(0.0, min(100.0, $a['quota']));
+          $cls = $p <= 10 ? ' bad' : ($p <= 30 ? ' warn' : '');
+          $txt = rtrim(rtrim(number_format($p, 1), '0'), '.') . '%';
+          $tip = '7 日額度剩 ' . $txt . ($a['reset'] ? '，' . date('n/j H:i', $a['reset']) . ' 重置' : '');
+          return '<span class="meter' . $cls . '" title="' . h($tip) . '" aria-label="' . h($tip) . '">'
+               . '<span class="bar"><span class="fill" style="width:' . round($p) . '%"></span></span>' . h($txt) . '</span>';
+      };
+      // 重置倒數：一天以上寫「還有 N 天 H 小時」，不到一天寫「還有 H 小時 M 分」
+      $agLeft = function (int $reset): string {
+          $s = $reset - time();
+          if ($s <= 0) { return '，已到重置時間'; }
+          $d = intdiv($s, 86400); $hh = intdiv($s % 86400, 3600); $mm = intdiv($s % 3600, 60);
+          return $d > 0 ? '，還有 ' . $d . ' 天 ' . $hh . ' 小時' : '，還有 ' . $hh . ' 小時 ' . $mm . ' 分';
+      };
+      $agDetail = function (array $a) use ($agLeft): string {
           $v = $a['ver'] !== null ? h($a['runtime'] . ' ' . $a['ver']) . ($a['behind'] ? ' <span class="low">（版本落後）</span>' : '') : h($a['runtime']);
           $out = '<span>最後心跳 <b>' . h($a['when']) . '</b>' . ($a['ago'] ? '（' . h($a['ago']) . '）' : '') . '</span>'
                . '<span>' . $v . '</span>'
-               . '<span>7 日額度 <b>' . ($a['quota'] !== null ? h(rtrim(rtrim(number_format($a['quota'], 1), '0'), '.')) . '%' : '–') . '</b>'
-               . ($a['reset'] ? '（' . h(date('n/j H:i', $a['reset'])) . ' 重置）' : '') . '</span>';
+               . '<span>7 日額度 <b>' . ($a['quota'] !== null ? '已用 ' . h(rtrim(rtrim(number_format($a['quota'], 1), '0'), '.')) . '%，剩 ' . h(rtrim(rtrim(number_format(100 - $a['quota'], 1), '0'), '.')) . '%' : '–') . '</b>'
+               . ($a['reset'] ? '（' . h(date('n/j H:i', $a['reset'])) . ' 重置' . h($agLeft($a['reset'])) . '）' : '') . '</span>';
           if ($a['note'] !== '') { $out .= '<span class="clamp" style="flex:1 1 100%">這班：' . h(mb_strimwidth($a['note'], 0, 160, '…', 'UTF-8')) . '</span>'; }
           return $out;
       };
@@ -147,7 +164,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <?php foreach ($agProblems as $a): ?>
       <div class="card">
         <span class="dot <?= h($a['cls']) ?>" title="<?= h($a['live']) ?>"></span>
-        <span class="name" title="<?= h($a['full']) ?>"><?= h($a['name']) ?>　<span class="sub"><?= h($a['live']) ?></span><?= $a['daily'] !== null ? '<span class="tag bad">' . h($a['daily']) . '</span>' : '' ?></span>
+        <span class="name" title="<?= h($a['full']) ?>"><?= h($a['name']) ?>　<span class="sub"><?= h($a['live']) ?></span><?= $a['daily'] !== null ? '<span class="tag bad">' . h($a['daily']) . '</span>' : '' ?> <?= $agMeter($a) ?></span>
         <div class="nums meta"><?= $agDetail($a) ?></div>
       </div>
     <?php endforeach; ?>
@@ -155,7 +172,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       <div class="chips">
       <?php foreach ($agFine as $a): ?>
         <details class="chip">
-          <summary title="<?= h($a['full']) ?>"><span class="dot <?= h($a['cls']) ?>"></span><span class="nm"><?= h($a['name']) ?></span><span class="sub"><?= h($a['when']) ?></span></summary>
+          <summary title="<?= h($a['full']) ?>"><span class="dot <?= h($a['cls']) ?>"></span><span class="nm"><?= h($a['name']) ?></span><?= $agMeter($a) ?><span class="sub"><?= h($a['when']) ?></span></summary>
           <div class="nums meta"><?= $agDetail($a) ?></div>
         </details>
       <?php endforeach; ?>
