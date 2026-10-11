@@ -146,7 +146,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <?php foreach ($agProblems as $a): ?>
       <div class="card">
         <span class="dot <?= h($a['cls']) ?>" title="<?= h($a['live']) ?>"></span>
-        <span class="name"><?= h($a['name']) ?>　<span class="sub"><?= h($a['live']) ?></span><?= $a['daily'] !== null ? '<span class="tag bad">' . h($a['daily']) . '</span>' : '' ?></span>
+        <span class="name" title="<?= h($a['full']) ?>"><?= h($a['name']) ?>　<span class="sub"><?= h($a['live']) ?></span><?= $a['daily'] !== null ? '<span class="tag bad">' . h($a['daily']) . '</span>' : '' ?></span>
         <div class="nums meta"><?= $agDetail($a) ?></div>
       </div>
     <?php endforeach; ?>
@@ -154,7 +154,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       <div class="chips">
       <?php foreach ($agFine as $a): ?>
         <details class="chip">
-          <summary title="<?= h($a['name']) ?>"><span class="dot <?= h($a['cls']) ?>"></span><span class="nm"><?= h(preg_replace('/^CCNDA/u', '', $a['name'])) ?></span><span class="sub"><?= h($a['when']) ?></span></summary>
+          <summary title="<?= h($a['full']) ?>"><span class="dot <?= h($a['cls']) ?>"></span><span class="nm"><?= h($a['name']) ?></span><span class="sub"><?= h($a['when']) ?></span></summary>
           <div class="nums meta"><?= $agDetail($a) ?></div>
         </details>
       <?php endforeach; ?>

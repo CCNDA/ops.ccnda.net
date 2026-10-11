@@ -60,7 +60,10 @@ function agent_view(array $r, int $now): array
     $quota = is_array($q) && isset($q['used_pct']) && is_numeric($q['used_pct']) ? (float) $q['used_pct'] : null;
     $ago = $min === null ? '' : ($min < 60 ? $min . ' 分鐘前' : intdiv($min, 60) . ' 小時 ' . ($min % 60) . ' 分前');
     return [
-        'name'    => (string) ($r['name'] ?? $r['agent'] ?? '?'),
+        // 顯示用短名：拿掉「CCNDA」「IT」前綴（熊哥 2026-10-11：「大蘇不用加it 這樣比較一致」）。
+        // 名單在共用技能 heartbeat_check.py，不改那邊，只在戰情室顯示時處理；完整名稱放 full（title 提示）。
+        'name'    => preg_replace('/^(CCNDA|IT)/u', '', (string) ($r['name'] ?? $r['agent'] ?? '?')),
+        'full'    => (string) ($r['name'] ?? $r['agent'] ?? '?'),
         'cls'     => $cls,
         'live'    => $live,
         'daily'   => ($r['status'] ?? '') === 'alive' ? null : (string) ($r['label'] ?? '今日未報到'),
