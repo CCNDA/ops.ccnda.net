@@ -58,6 +58,8 @@ function agent_view(array $r, int $now): array
     $ver = $runtime === 'codex' ? ($r['codex_version'] ?? null) : ($r['claude_version'] ?? null);
     $q = $r['quota_7d'] ?? null;
     $quota = is_array($q) && isset($q['used_pct']) && is_numeric($q['used_pct']) ? (float) $q['used_pct'] : null;
+    // 重置時間（熊哥 2026-10-11：「七日額度 沒有重整日 這樣不知道狀態」）：Claude 台是 UTC（…Z）、codex 台帶 +08:00，strtotime 都吃
+    $reset = is_array($q) && !empty($q['resets_at']) ? strtotime((string) $q['resets_at']) : false;
     $ago = $min === null ? '' : ($min < 60 ? $min . ' 分鐘前' : intdiv($min, 60) . ' 小時 ' . ($min % 60) . ' 分前');
     return [
         // 顯示用短名：拿掉「CCNDA」「IT」前綴（熊哥 2026-10-11：「大蘇不用加it 這樣比較一致」）。
@@ -73,6 +75,7 @@ function agent_view(array $r, int $now): array
         'ver'     => $ver !== null ? (string) $ver : null,
         'behind'  => ($r['version_state'] ?? '') === 'behind',
         'quota'   => $quota,
+        'reset'   => $reset ?: null,
         'note'    => (string) ($r['note'] ?? ''),
         'problem' => $cls !== 'ok' || ($r['status'] ?? '') !== 'alive',
     ];
