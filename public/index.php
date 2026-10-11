@@ -171,7 +171,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <?php foreach ($agProblems as $a): ?>
       <div class="card">
         <span class="dot <?= h($a['cls']) ?>" title="<?= h($a['live']) ?>"></span>
-        <span class="name" title="<?= h($a['full']) ?>"><?= h($a['name']) ?>　<span class="sub"><?= h($a['live']) ?></span><?= $a['daily'] !== null ? '<span class="tag bad">' . h($a['daily']) . '</span>' : '' ?> <?= $agMeter($a) ?></span>
+        <span class="name" title="<?= h($a['full']) ?>"><?= h($a['name']) ?>　<span class="sub"><?= h($a['live']) ?></span><?= $agMeter($a) ?></span>
         <div class="nums meta"><?= $agDetail($a) ?></div>
       </div>
     <?php endforeach; ?>

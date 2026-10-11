@@ -60,8 +60,6 @@ function agent_view(array $r, int $now): array
     $quota = is_array($q) && isset($q['used_pct']) && is_numeric($q['used_pct']) ? (float) $q['used_pct'] : null;
     // 重置時間（熊哥 2026-10-11：「七日額度 沒有重整日 這樣不知道狀態」）：Claude 台是 UTC（…Z）、codex 台帶 +08:00，strtotime 都吃
     $reset = is_array($q) && !empty($q['resets_at']) ? strtotime((string) $q['resets_at']) : false;
-    // 「今日報到」07:00 起算，各台第一班約 07:23：07:45 前燈號正常（90 分鐘內有心跳）就不當成未報到，免得每天早上全部展開
-    $grace = $cls === 'ok' && date('H:i') < '07:45';
     $ago = $min === null ? '' : ($min < 60 ? $min . ' 分鐘前' : intdiv($min, 60) . ' 小時 ' . ($min % 60) . ' 分前');
     return [
         // 顯示用短名：拿掉「CCNDA」「IT」前綴（熊哥 2026-10-11：「大蘇不用加it 這樣比較一致」）。
@@ -70,7 +68,6 @@ function agent_view(array $r, int $now): array
         'full'    => (string) ($r['name'] ?? $r['agent'] ?? '?'),
         'cls'     => $cls,
         'live'    => $live,
-        'daily'   => ($r['status'] ?? '') === 'alive' || $grace ? null : (string) ($r['label'] ?? '今日未報到'),
         'when'    => $ts ? date('H:i', $ts) : '—',
         'ago'     => $ago,
         'runtime' => $runtime,
@@ -79,6 +76,7 @@ function agent_view(array $r, int $now): array
         'quota'   => $quota,
         'reset'   => $reset ?: null,
         'note'    => (string) ($r['note'] ?? ''),
-        'problem' => $cls !== 'ok' || (($r['status'] ?? '') !== 'alive' && !$grace),
+        // 只看 90 分鐘心跳（熊哥 2026-10-12：「戰情室應該不用算今日報到 因為都需要90分鐘內報到」）
+        'problem' => $cls !== 'ok',
     ];
 }
