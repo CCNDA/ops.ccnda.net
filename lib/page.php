@@ -43,7 +43,9 @@ h1 a:hover{text-decoration:none}
 .brand{width:34px;height:34px;border-radius:6px;flex:0 0 auto}
 footer{margin-top:40px;border-top:1px solid var(--line);background:var(--card)}
 .ft{max-width:960px;margin:0 auto;padding:16px 20px;font-size:.82rem;color:var(--soft);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
-.ft-logo{width:24px;height:24px;border-radius:4px}
+.ft-logo{width:24px;height:24px;border-radius:4px;flex:0 0 auto}
+.ft-org{display:inline-flex;align-items:center;gap:8px}
+.nw{white-space:nowrap}
 .sub{color:var(--soft);font-size:.85rem;font-weight:400}
 h2{font-size:1.05rem;margin:28px 0 10px}
 a{color:var(--link);text-decoration:none}
@@ -106,6 +108,7 @@ a:hover{text-decoration:underline}
   .inline{gap:14px}.inline b{font-size:1.25rem}
   .clamp{-webkit-line-clamp:2}
   .list .m{white-space:normal}
+  .ft{flex-direction:column;align-items:center;text-align:center;gap:6px;padding:14px 12px}
 }
 .notice{color:#8a5a00;background:#fff7e6;border:1px solid #f5d9a8;border-radius:10px;padding:10px 16px;margin:0 0 10px}
 </style>
@@ -123,8 +126,7 @@ function page_foot(): void
 {
     $v = app_version();
     echo "</main>\n<footer><div class=\"ft\">"
-        . '<span style="display:inline-flex;align-items:center;gap:8px"><img class="ft-logo" src="/assets/logo-ccnda.png" alt="CCNDA">'
-        . '© 2026 中華基督教網路發展協會（CCNDA）・ 內部使用</span>'
-        . '<a href="/changelog.php">' . ($v !== '' ? 'v' . h($v) . ' ・ 版本說明' : '版本說明') . '</a>'
+        . '<span class="ft-org"><img class="ft-logo" src="/assets/logo-ccnda.png" alt="CCNDA"><span class="nw">© 2026 中華基督教網路發展協會</span></span>'
+        . '<span class="ft-meta"><span class="nw">內部使用</span> ・ <a class="nw" href="/changelog.php">' . ($v !== '' ? 'v' . h($v) . ' 版本說明' : '版本說明') . '</a></span>'
         . "</div></footer>\n</body>\n</html>\n";
 }
