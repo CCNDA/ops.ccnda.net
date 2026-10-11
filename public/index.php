@@ -76,7 +76,7 @@ $upCls = !$up ? 'wait' : ($cnt['down'] > 0 ? 'bad' : 'ok');
 $agents = $ag ? array_map(fn($r) => agent_view($r, time()), $ag['rows']) : [];
 $agCnt = ['ok' => 0, 'warn' => 0, 'bad' => 0];
 foreach ($agents as $a) { if (isset($agCnt[$a['cls']])) { $agCnt[$a['cls']]++; } }
-$agCls = !$ag ? 'wait' : ($agCnt['bad'] ? 'bad' : ($agCnt['warn'] || array_filter($agents, fn($a) => $a['daily'] !== null) ? 'warn' : 'ok'));
+$agCls = !$ag ? 'wait' : ($agCnt['bad'] ? 'bad' : ($agCnt['warn'] ? 'warn' : 'ok'));
 
 page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cora-lab 檢查 ・ 每分鐘自動更新', 60);
 ?>
