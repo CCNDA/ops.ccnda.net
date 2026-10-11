@@ -53,7 +53,7 @@ page_head('網站監控｜CCNDA 戰情室', 'UptimeRobot（從外部檢查）・
   <div class="chips">
 <?php foreach ($fine as $m): ?>
     <details class="chip">
-      <summary><span class="dot <?= h($m['cls']) ?>" title="<?= h($m['label']) ?>"></span><?= h($m['name']) ?></summary>
+      <summary title="<?= h($m['name']) ?>"><span class="dot <?= h($m['cls']) ?>"></span><span class="nm"><?= h($m['name']) ?></span></summary>
       <div class="nums meta"><?= $m['cls'] === 'paused' ? '<span>暫停監控</span>' : '' ?><?= $detail($m) ?></div>
     </details>
 <?php endforeach; ?>

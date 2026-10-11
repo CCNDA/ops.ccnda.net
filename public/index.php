@@ -136,7 +136,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
           $out = '<span>最後心跳 <b>' . h($a['when']) . '</b>' . ($a['ago'] ? '（' . h($a['ago']) . '）' : '') . '</span>'
                . '<span>' . $v . '</span>'
                . '<span>7 日額度 <b>' . ($a['quota'] !== null ? h(rtrim(rtrim(number_format($a['quota'], 1), '0'), '.')) . '%' : '–') . '</b></span>';
-          if ($a['note'] !== '') { $out .= '<span style="flex:1 1 100%">這班：' . h(mb_strimwidth($a['note'], 0, 160, '…', 'UTF-8')) . '</span>'; }
+          if ($a['note'] !== '') { $out .= '<span class="clamp" style="flex:1 1 100%">這班：' . h(mb_strimwidth($a['note'], 0, 160, '…', 'UTF-8')) . '</span>'; }
           return $out;
       };
       $agProblems = array_values(array_filter($agents, fn($a) => $a['problem']));
@@ -154,7 +154,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       <div class="chips">
       <?php foreach ($agFine as $a): ?>
         <details class="chip">
-          <summary><span class="dot <?= h($a['cls']) ?>" title="<?= h($a['live']) ?>"></span><?= h($a['name']) ?> <span class="sub"><?= h($a['when']) ?></span></summary>
+          <summary title="<?= h($a['name']) ?>"><span class="dot <?= h($a['cls']) ?>"></span><span class="nm"><?= h(preg_replace('/^CCNDA/u', '', $a['name'])) ?></span><span class="sub"><?= h($a['when']) ?></span></summary>
           <div class="nums meta"><?= $agDetail($a) ?></div>
         </details>
       <?php endforeach; ?>

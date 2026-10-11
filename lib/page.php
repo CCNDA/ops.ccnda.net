@@ -10,6 +10,13 @@ function h(?string $s): string
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/** 目前版本（repo 根目錄 VERSION）。熊哥 2026-10-11：「戰情網也要有協會logo 版本序號 版本說明」 */
+function app_version(): string
+{
+    $v = @file_get_contents(__DIR__ . '/../VERSION');
+    return $v === false ? '' : trim($v);
+}
+
 function page_head(string $title, string $sub, int $refresh = 0): void
 {
     header('Cache-Control: no-store');
@@ -23,6 +30,7 @@ function page_head(string $title, string $sub, int $refresh = 0): void
 <meta name="robots" content="noindex, nofollow">
 <?php if ($refresh > 0): ?><meta http-equiv="refresh" content="<?= $refresh ?>">
 <?php endif; ?><title><?= h($title) ?></title>
+<link rel="icon" type="image/png" href="/assets/logo-ccnda.png">
 <style>
 :root{--bg:#f4f7fa;--card:#fff;--ink:#14303c;--soft:#5c7482;--line:#e2e8ee;--ok:#1a7f4b;--bad:#b42318;--warn:#d97706;--link:#0e6d94}
 *{box-sizing:border-box}
@@ -30,7 +38,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","
 header{background:var(--card);border-bottom:1px solid var(--line)}
 .wrap{max-width:960px;margin:0 auto;padding:16px 20px}
 h1{margin:0;font-size:1.3rem;letter-spacing:.08em}
-h1 a{color:inherit}
+h1 a{color:inherit;display:inline-flex;align-items:center;gap:10px}
+h1 a:hover{text-decoration:none}
+.brand{width:34px;height:34px;border-radius:6px;flex:0 0 auto}
+footer{margin-top:40px;border-top:1px solid var(--line);background:var(--card)}
+.ft{max-width:960px;margin:0 auto;padding:16px 20px;font-size:.82rem;color:var(--soft);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.ft-logo{width:24px;height:24px;border-radius:4px}
 .sub{color:var(--soft);font-size:.85rem;font-weight:400}
 h2{font-size:1.05rem;margin:28px 0 10px}
 a{color:var(--link);text-decoration:none}
@@ -67,20 +80,39 @@ a:hover{text-decoration:underline}
 .todo{color:var(--soft);font-size:.92rem}
 .nums{display:flex;gap:16px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:.9rem}
 .nums b{font-weight:600}.low{color:var(--bad)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;flex:0 1 auto}
-.chip[open]{flex:1 1 100%}
-.chip summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:.92rem}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:0}
+.chip[open]{grid-column:1/-1}
+.chip summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:.92rem;min-width:0}
+.chip summary .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip summary .sub{flex:0 0 auto}
+.clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .chip summary::-webkit-details-marker{display:none}
 .chip .nums{margin-top:6px}
 .tag{display:inline-block;font-size:.76rem;padding:0 9px;border-radius:10px;border:1px solid currentColor;margin-left:6px;font-weight:400}
 .tag.bad{color:var(--bad)}.tag.warn{color:#b45309}
+/* 手機（熊哥：「手機排版不好看」）*/
+@media (max-width:600px){
+  .wrap{padding:12px}
+  .panel{padding:14px;border-radius:12px;margin-bottom:12px}
+  .panel-hd{gap:8px;margin-bottom:10px}
+  .card{padding:10px 12px;gap:8px}
+  .nums{gap:4px 12px;font-size:.85rem}
+  .chips{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .chip{padding:6px 10px}
+  .chip summary{font-size:.88rem;gap:6px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+  .stat{padding:8px 10px}.stat b{font-size:1.5rem}
+  .inline{gap:14px}.inline b{font-size:1.25rem}
+  .clamp{-webkit-line-clamp:2}
+  .list .m{white-space:normal}
+}
 .notice{color:#8a5a00;background:#fff7e6;border:1px solid #f5d9a8;border-radius:10px;padding:10px 16px;margin:0 0 10px}
 </style>
 </head>
 <body>
 <header><div class="wrap">
-  <h1><a href="/">CCNDA 戰情室</a></h1>
+  <h1><a href="/"><img class="brand" src="/assets/logo-ccnda.png" alt="">CCNDA 戰情室</a></h1>
   <div class="sub"><?= h($sub) ?></div>
 </div></header>
 <main class="wrap">
@@ -89,5 +121,10 @@ a:hover{text-decoration:underline}
 
 function page_foot(): void
 {
-    echo "</main>\n</body>\n</html>\n";
+    $v = app_version();
+    echo "</main>\n<footer><div class=\"ft\">"
+        . '<span style="display:inline-flex;align-items:center;gap:8px"><img class="ft-logo" src="/assets/logo-ccnda.png" alt="CCNDA">'
+        . '© 2026 中華基督教網路發展協會（CCNDA）・ 內部使用</span>'
+        . '<a href="/changelog.php">' . ($v !== '' ? 'v' . h($v) . ' ・ 版本說明' : '版本說明') . '</a>'
+        . "</div></footer>\n</body>\n</html>\n";
 }
