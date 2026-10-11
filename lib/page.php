@@ -57,7 +57,10 @@ a:hover{text-decoration:underline}
 .meter .bar{position:relative;width:30px;height:12px;border:1.5px solid #8a9aa5;border-radius:3px;background:#fff;padding:1px;display:inline-block;box-sizing:border-box;margin-right:3px}
 .meter .bar::after{content:"";position:absolute;right:-4px;top:2.5px;width:2px;height:4px;background:#8a9aa5;border-radius:0 1px 1px 0}
 .meter .fill{display:block;height:100%;border-radius:1px;background:var(--ok)}
-.meter .tl{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink);border-radius:1px}
+.meter .bw{display:inline-flex;flex-direction:column;gap:2px;margin-right:3px}
+.meter .bw .bar{margin-right:0}
+.meter .time{width:calc(100% - 3px);height:3px;border-radius:2px;background:#e2e8ee;overflow:hidden}
+.meter .time span{display:block;height:100%;background:#9aa9b3}
 .meter.warn .fill{background:var(--warn)}.meter.warn{color:#b45309}
 .meter.bad .fill{background:var(--bad)}.meter.bad{color:var(--bad);font-weight:600}
 /* 摘要卡 */
