@@ -16,6 +16,7 @@ declare(strict_types=1);
 require __DIR__ . '/../lib/page.php';
 require __DIR__ . '/../lib/uptime.php';
 require __DIR__ . '/../lib/agents.php';
+require __DIR__ . '/../lib/projects.php';
 
 // 測試站清單：新增一站就加一筆。check 是 cora-lab 本機的健康檢查網址（不經網際網路）。
 $TEST_SITES = [
@@ -189,6 +190,43 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       <?php endforeach; ?>
       </div>
     <?php endif; ?>
+    </div>
+    <?php endif; ?>
+  </section>
+
+  <?php [$proj, $projMsg] = projects_data(); ?>
+  <section class="panel" id="projects">
+    <div class="panel-hd">
+      <span class="dot big <?= $proj ? 'ok' : 'wait' ?>"></span>
+      <h2>小芯開發中專案</h2>
+      <span class="sub"><?= $proj ? '更新於 ' . h(substr((string) $proj['checked_at'], 11, 5)) . ' ・ 每 10 分鐘更新' : '' ?></span>
+    </div>
+    <?php if ($projMsg !== ''): ?><div class="notice"><?= h($projMsg) ?></div><?php endif; ?>
+    <?php if ($proj): ?>
+    <div class="projs">
+    <?php foreach ($proj['projects'] as $p): ?>
+      <div class="card proj">
+        <div class="proj-hd">
+          <span class="name"><?= project_link($p['url'] ?? null, (string) $p['name']) ?: h((string) $p['name']) ?></span>
+          <span class="meta">
+            <?php if (!empty($p['prod_version'])): ?><span>正式版 <b>v<?= h((string) $p['prod_version']) ?></b></span><?php endif; ?>
+            <?php if (!empty($p['test']['branch'])): ?><span>測試站：<?= project_link($p['test_url'] ?? null, (string) $p['test']['branch']) ?: h((string) $p['test']['branch']) ?>（<?= h((string) $p['test']['commit']) ?>）</span><?php endif; ?>
+            <?= !empty($p['github']) ? '<span>' . project_link($p['github'], 'GitHub') . '</span>' : '' ?>
+          </span>
+        </div>
+        <ul class="proj-items">
+        <?php foreach (($p['items'] ?? []) as $it):
+            [$stLabel, $stCls] = PROJECT_STAGES[$it['stage'] ?? ''] ?? [(string) ($it['stage'] ?? '—'), 'st-plan']; ?>
+          <li>
+            <span class="stage <?= h($stCls) ?>"><?= h($stLabel) ?></span>
+            <span class="it-title"><?= h((string) $it['title']) ?></span>
+            <?php if (!empty($it['waiting'])): ?><span class="it-wait">卡在：<?= h((string) $it['waiting']) ?></span><?php endif; ?>
+            <span class="it-links"><?= project_link($it['asana'] ?? null, 'Asana') ?><?= !empty($it['github']) ? ' ・ ' . project_link($it['github'], 'GitHub') : '' ?></span>
+          </li>
+        <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php endforeach; ?>
     </div>
     <?php endif; ?>
   </section>

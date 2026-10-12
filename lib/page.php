@@ -100,6 +100,19 @@ a:hover{text-decoration:underline}
 .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:0}
 .chip[open]{grid-column:1/-1}
+/* 小芯開發中專案 */
+.projs{display:grid;gap:10px}
+.card.proj{display:block}
+.proj-hd{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.proj-hd .meta{display:flex;flex-wrap:wrap;gap:4px 12px;flex:1 1 auto}
+.proj-items{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.proj-items li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:.9rem}
+.proj-items .it-title{flex:1 1 14em;min-width:0}
+.proj-items .it-wait{color:var(--soft);font-size:.82rem}
+.proj-items .it-links{font-size:.82rem}
+.stage{display:inline-block;font-size:.76rem;padding:0 9px;border-radius:10px;border:1px solid currentColor;white-space:nowrap}
+.st-dev{color:#1d4ed8}.st-queued{color:#5c7482}.st-retest{color:#b45309}.st-confirm{color:#b42318;font-weight:600}
+.st-deploy{color:#7c3aed}.st-plan{color:#5c7482}.st-blocked{color:#b42318}.st-done{color:var(--ok)}
 /* 兩兩一組：電腦上下疊（一欄）、手機左右並排；共用額度的組加虛線框 */
 .chips{gap:12px}
 .pair{display:flex;flex-direction:column;gap:8px;min-width:0;border-radius:13px}
