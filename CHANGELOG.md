@@ -5,6 +5,11 @@ CCNDA 戰情室 ops.ccnda.net 每一版的重點變更。版本號採 `主版本
 
 ---
 
+## [1.7.3] - 2026-10-12 —— 加到主畫面有協會 logo
+
+- 手機「加到主畫面」時顯示協會 logo、名稱「戰情室」：iOS 用 apple-touch-icon（180，白底不透明），Android 用 manifest（192／512）（熊哥：「讓戰情室放在主畫面的時候有Logo」「Andriod 和iOS 都要有」）
+- manifest 帶 crossorigin="use-credentials"，避免被 Cloudflare Access 轉去登入頁
+
 ## [1.7.2] - 2026-10-12 —— 區塊名稱
 
 - 「小芯開發中專案」改名為「開發中專案」（熊哥：「開發中專案 前面不用加小芯」）

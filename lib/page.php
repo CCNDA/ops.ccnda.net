@@ -30,6 +30,13 @@ function page_head(string $title, string $sub, int $refresh = 0): void
 <meta name="robots" content="noindex, nofollow">
 <title><?= h($title) ?></title>
 <link rel="icon" type="image/png" href="/assets/logo-ccnda.png">
+<!-- 加到主畫面的圖示（熊哥 2026-10-12：「讓戰情室放在主畫面的時候有Logo」「Andriod 和iOS 都要有」）。
+     manifest 要帶 credentials，否則 Cloudflare Access 會把它轉去登入頁、Android 讀不到圖示。 -->
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials">
+<meta name="theme-color" content="#14303c">
+<meta name="apple-mobile-web-app-title" content="戰情室">
+<meta name="application-name" content="戰情室">
 <style>
 :root{--bg:#f4f7fa;--card:#fff;--ink:#14303c;--soft:#5c7482;--line:#e2e8ee;--ok:#1a7f4b;--bad:#b42318;--warn:#d97706;--link:#0e6d94}
 *{box-sizing:border-box}
