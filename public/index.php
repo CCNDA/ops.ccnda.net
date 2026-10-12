@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /**
- * CCNDA 戰情室 ops.ccnda.net —— 首頁：摘要卡（任務、數位同工、小芯開發中專案〔含測試站〕、網站監控、設備監控）。
+ * CCNDA 戰情室 ops.ccnda.net —— 首頁：摘要卡（任務、數位同工、開發中專案〔含測試站〕、網站監控、設備監控）。
  * 熊哥 2026-10-11 TG：「先做好戰情室，都透過 zero trust 聯結看內網的測試站」；
  *   20:54「我要類似這樣 任務要讀 asana」（大蘇 it.ccra.tw/ops 的摘要卡版面）；「不用全部展開，有問題在展開就好」。
  *
@@ -187,7 +187,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
   <section class="panel" id="projects">
     <div class="panel-hd">
       <span class="dot big <?= $proj ? 'ok' : 'wait' ?>"></span>
-      <h2>小芯開發中專案</h2>
+      <h2>開發中專案</h2>
       <span class="sub"><?= $proj ? '更新於 ' . h(substr((string) $proj['checked_at'], 11, 5)) . ' ・ 每 10 分鐘更新' : '' ?></span>
     </div>
     <?php if ($projMsg !== ''): ?><div class="notice"><?= h($projMsg) ?></div><?php endif; ?>

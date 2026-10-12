@@ -100,7 +100,7 @@ a:hover{text-decoration:underline}
 .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:0}
 .chip[open]{grid-column:1/-1}
-/* 小芯開發中專案 */
+/* 開發中專案 */
 .projs{display:grid;gap:10px}
 .card.proj{display:block}
 .proj-hd{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
