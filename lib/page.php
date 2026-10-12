@@ -105,6 +105,7 @@ a:hover{text-decoration:underline}
 .card.proj{display:block}
 .proj-hd{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
 .proj-hd .meta{display:flex;flex-wrap:wrap;gap:4px 12px;flex:1 1 auto}
+.card.proj > .meta{margin-top:4px}
 .proj-items{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
 .proj-items li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:.9rem}
 .proj-items .it-title{flex:1 1 14em;min-width:0}

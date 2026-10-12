@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /**
- * CCNDA 戰情室 ops.ccnda.net —— 首頁：摘要卡（任務、網站監控、設備監控）＋測試站。
+ * CCNDA 戰情室 ops.ccnda.net —— 首頁：摘要卡（任務、數位同工、小芯開發中專案〔含測試站〕、網站監控、設備監控）。
  * 熊哥 2026-10-11 TG：「先做好戰情室，都透過 zero trust 聯結看內網的測試站」；
  *   20:54「我要類似這樣 任務要讀 asana」（大蘇 it.ccra.tw/ops 的摘要卡版面）；「不用全部展開，有問題在展開就好」。
  *
@@ -17,17 +17,6 @@ require __DIR__ . '/../lib/page.php';
 require __DIR__ . '/../lib/uptime.php';
 require __DIR__ . '/../lib/agents.php';
 require __DIR__ . '/../lib/projects.php';
-
-// 測試站清單：新增一站就加一筆。check 是 cora-lab 本機的健康檢查網址（不經網際網路）。
-$TEST_SITES = [
-    [
-        'name'  => '屬靈共同書目（測試站）',
-        'url'   => 'https://books.ps194.net/',
-        'prod'  => 'https://books.zh.church/',
-        'check' => 'http://127.0.0.1:8081/api/version',
-        'note'  => 'cora-lab：/srv/dev/books.zh.church，資料庫 books_dev（正式庫的複本）',
-    ],
-];
 
 function site_status(string $url): array
 {
@@ -206,14 +195,21 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <div class="projs">
     <?php foreach ($proj['projects'] as $p): ?>
       <div class="card proj">
+        <?php $st = !empty($p['test_check']) ? site_status((string) $p['test_check']) : null; ?>
         <div class="proj-hd">
+          <?php if ($st): ?><span class="dot <?= $st['ok'] ? 'ok' : 'bad' ?>" title="測試站<?= $st['ok'] ? '正常' : '連不到' ?>"></span><?php endif; ?>
           <span class="name"><?= project_link($p['url'] ?? null, (string) $p['name']) ?: h((string) $p['name']) ?></span>
           <span class="meta">
             <?php if (!empty($p['prod_version'])): ?><span>正式版 <b>v<?= h((string) $p['prod_version']) ?></b></span><?php endif; ?>
             <?php if (!empty($p['test']['branch'])): ?><span>測試站：<?= project_link($p['test_url'] ?? null, (string) $p['test']['branch']) ?: h((string) $p['test']['branch']) ?>（<?= h((string) $p['test']['commit']) ?>）</span><?php endif; ?>
             <?= !empty($p['github']) ? '<span>' . project_link($p['github'], 'GitHub') . '</span>' : '' ?>
           </span>
+          <?php if (!empty($p['test_url']) && preg_match('#^https?://#i', (string) $p['test_url'])): ?><a class="btn" href="<?= h((string) $p['test_url']) ?>" target="_blank" rel="noopener">開啟測試站</a><?php endif; ?>
+          <?php if (!empty($p['url']) && !empty($p['test_url']) && preg_match('#^https?://#i', (string) $p['url'])): ?><a class="btn" href="<?= h((string) $p['url']) ?>" target="_blank" rel="noopener">對照正式站</a><?php endif; ?>
         </div>
+        <?php if ($st || !empty($p['test_note'])): ?>
+        <div class="meta"><?= $st ? ($st['ok'] ? '測試站正常' : '⚠️ 測試站連不到') . '（HTTP ' . ($st['code'] ?: '—') . '，' . $st['ms'] . ' ms）' : '' ?><?= !empty($p['test_note']) ? ($st ? ' ・ ' : '') . h((string) $p['test_note']) : '' ?></div>
+        <?php endif; ?>
         <ul class="proj-items">
         <?php foreach (($p['items'] ?? []) as $it):
             [$stLabel, $stCls] = PROJECT_STAGES[$it['stage'] ?? ''] ?? [(string) ($it['stage'] ?? '—'), 'st-plan']; ?>
@@ -259,14 +255,4 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <p class="todo">建置中：設備清單等熊叔叔確認。</p>
   </section>
 
-  <h2>測試站</h2>
-<?php foreach ($TEST_SITES as $s): $st = site_status($s['check']); ?>
-  <div class="card">
-    <span class="dot <?= $st['ok'] ? 'ok' : 'bad' ?>" title="<?= $st['ok'] ? '正常' : '連不到' ?>"></span>
-    <span class="name"><?= h($s['name']) ?><?= $st['version'] ? '　<span class="sub">v' . h($st['version']) . '</span>' : '' ?></span>
-    <a class="btn" href="<?= h($s['url']) ?>" target="_blank" rel="noopener">開啟測試站</a>
-    <a class="btn" href="<?= h($s['prod']) ?>" target="_blank" rel="noopener">對照正式站</a>
-    <div class="meta"><?= $st['ok'] ? '正常' : '⚠️ 連不到' ?>（HTTP <?= $st['code'] ?: '—' ?>，<?= $st['ms'] ?> ms）・ <?= h($s['note']) ?></div>
-  </div>
-<?php endforeach; ?>
 <?php page_foot();
