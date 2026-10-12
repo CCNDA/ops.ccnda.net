@@ -19,6 +19,27 @@ const AGENTS_YELLOW_MIN = 180;
 const AGENTS_STALE_SEC = 600;
 
 /** @return array{0: ?array, 1: string} [資料, 提示] */
+// 共用同一個帳號額度的同工（熊哥 2026-10-12：「小布小芯 電腦版放在上下，手機板放在左右」「小薇小霏也是 因為他們現在是同一個帳號額度」）
+const AGENTS_SHARED_QUOTA = [['vera', 'faye'], ['bruno', 'cora']];
+
+/** 把同工兩兩分組：共用額度的先排、成對；其他照原順序兩兩一組。電腦上一組上下疊、手機上一組左右並排。 */
+function agent_groups(array $agents): array
+{
+    $byKey = [];
+    foreach ($agents as $a) { $byKey[$a['agent']] = $a; }
+    $groups = []; $used = [];
+    foreach (AGENTS_SHARED_QUOTA as $pair) {
+        $items = array_values(array_filter(array_map(fn($k) => $byKey[$k] ?? null, $pair)));
+        if (count($items) === 2) {
+            $groups[] = ['shared' => true, 'items' => $items];
+            foreach ($pair as $k) { $used[$k] = true; }
+        }
+    }
+    $rest = array_values(array_filter($agents, fn($a) => !isset($used[$a['agent']])));
+    foreach (array_chunk($rest, 2) as $items) { $groups[] = ['shared' => false, 'items' => $items]; }
+    return $groups;
+}
+
 function agents_data(): array
 {
     if (!is_file(AGENTS_FILE)) {
@@ -65,6 +86,7 @@ function agent_view(array $r, int $now): array
     return [
         // 顯示用短名：拿掉「CCNDA」「IT」前綴（熊哥 2026-10-11：「大蘇不用加it 這樣比較一致」）。
         // 名單在共用技能 heartbeat_check.py，不改那邊，只在戰情室顯示時處理；完整名稱放 full（title 提示）。
+        'agent'   => (string) ($r['agent'] ?? ''),
         'name'    => preg_replace('/^(CCNDA|IT)/u', '', (string) ($r['name'] ?? $r['agent'] ?? '?')),
         'full'    => (string) ($r['name'] ?? $r['agent'] ?? '?'),
         'cls'     => $cls,

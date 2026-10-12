@@ -100,6 +100,11 @@ a:hover{text-decoration:underline}
 .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:0}
 .chip[open]{grid-column:1/-1}
+/* 兩兩一組：電腦上下疊（一欄）、手機左右並排；共用額度的組加虛線框 */
+.chips{gap:12px}
+.pair{display:flex;flex-direction:column;gap:8px;min-width:0;border-radius:13px}
+.pair.shared{outline:1.5px dashed #b8c4cc;outline-offset:3px}
+.pair:has(.chip[open]){grid-column:1/-1}
 .chip summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;font-size:.92rem;min-width:0}
 .chip summary .nm{flex:1 1 auto;min-width:2.2em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip summary .sub{flex:0 0 auto}
@@ -127,6 +132,7 @@ a:hover{text-decoration:underline}
   .ft{flex-direction:column;align-items:center;text-align:center;gap:6px;padding:14px 12px}
 }
 .notice{color:#8a5a00;background:#fff7e6;border:1px solid #f5d9a8;border-radius:10px;padding:10px 16px;margin:0 0 10px}
+@media (max-width:600px){.chips{grid-template-columns:1fr;gap:12px}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}}
 </style>
 </head>
 <body>

@@ -121,7 +121,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <div class="panel-hd">
       <span class="dot big <?= h($agCls) ?>"></span>
       <h2>數位同工</h2>
-      <span class="sub"><?= $ag ? '更新於 ' . h(date('H:i', (int) filemtime(AGENTS_FILE))) . ' ・ ' . AGENTS_GREEN_MIN . ' 分鐘內有心跳＝正常、3 小時內＝延遲 ・ 電池＝7 日額度剩餘，下方灰條＝7 日時間剩餘（綠色比灰條短＝可能提早用完）' : '' ?></span>
+      <span class="sub"><?= $ag ? '更新於 ' . h(date('H:i', (int) filemtime(AGENTS_FILE))) . ' ・ ' . AGENTS_GREEN_MIN . ' 分鐘內有心跳＝正常、3 小時內＝延遲 ・ 電池＝7 日額度剩餘，下方灰條＝7 日時間剩餘（綠色比灰條短＝可能提早用完） ・ 虛線框＝同一個帳號額度' : '' ?></span>
     </div>
     <?php if ($agMsg !== ''): ?><div class="notice"><?= h($agMsg) ?></div><?php endif; ?>
     <?php if ($ag): ?>
@@ -177,11 +177,15 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <?php endforeach; ?>
     <?php if ($agFine): ?>
       <div class="chips">
-      <?php foreach ($agFine as $a): ?>
-        <details class="chip">
-          <summary title="<?= h($a['full']) ?>"><span class="dot <?= h($a['cls']) ?>"></span><span class="nm"><?= h($a['name']) ?></span><?= $agMeter($a) ?><span class="sub"><?= h($a['when']) ?></span></summary>
-          <div class="nums meta"><?= $agDetail($a) ?></div>
-        </details>
+      <?php foreach (agent_groups($agFine) as $g): ?>
+        <div class="pair<?= $g['shared'] ? ' shared' : '' ?>"<?= $g['shared'] ? ' role="group" aria-label="同一個帳號額度：' . h(implode('、', array_column($g['items'], 'name'))) . '" title="同一個帳號額度"' : '' ?>>
+        <?php foreach ($g['items'] as $a): ?>
+          <details class="chip">
+            <summary title="<?= h($a['full']) ?>"><span class="dot <?= h($a['cls']) ?>"></span><span class="nm"><?= h($a['name']) ?></span><?= $agMeter($a) ?><span class="sub"><?= h($a['when']) ?></span></summary>
+            <div class="nums meta"><?= $agDetail($a) ?></div>
+          </details>
+        <?php endforeach; ?>
+        </div>
       <?php endforeach; ?>
       </div>
     <?php endif; ?>
