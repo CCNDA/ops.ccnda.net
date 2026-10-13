@@ -71,6 +71,13 @@ $agCls = !$ag ? 'wait' : ($agCnt['bad'] ? 'bad' : ($agCnt['warn'] ? 'warn' : 'ok
 
 page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cora-lab 檢查 ・ 每分鐘自動更新', 60);
 ?>
+  <!-- 網頁推播（Asana 1219443887250576）：沒有 JS 或瀏覽器不支援時整塊保持隱藏 -->
+  <div id="push-box" class="pushbox" hidden>
+    <button type="button" id="push-btn" class="rf" aria-pressed="false">開啟通知</button>
+    <button type="button" id="push-test" class="rf" hidden>送測試通知</button>
+    <span id="push-msg" class="sub" role="status" aria-live="polite"></span>
+  </div>
+  <script src="/assets/push.js" defer></script>
   <section class="panel<?= is_array($tasks) && $tasks['counts']['overdue'] > 0 ? '' : '' ?>" id="tasks">
     <div class="panel-hd">
       <h2>📋 任務（Asana）</h2>

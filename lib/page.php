@@ -58,6 +58,8 @@ a{color:var(--link);text-decoration:none}
 a:hover{text-decoration:underline}
 .sub a,.notice a,.meta a,.inline a{text-decoration:underline;text-underline-offset:2px}
 :focus-visible{outline:3px solid var(--link);outline-offset:2px;border-radius:4px}
+.pushbox{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}
+.pushbox[hidden]{display:none}
 .skip{position:absolute;left:-9999px;top:8px;background:#fff;color:var(--link);padding:8px 14px;border-radius:8px;z-index:10}
 .skip:focus{left:12px}
 .rf{font:inherit;font-size:.82rem;color:var(--link);background:none;border:1px solid var(--line);border-radius:999px;padding:1px 10px;cursor:pointer;margin-left:4px}
