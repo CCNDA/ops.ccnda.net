@@ -17,6 +17,7 @@ require __DIR__ . '/../lib/page.php';
 require __DIR__ . '/../lib/uptime.php';
 require __DIR__ . '/../lib/agents.php';
 require __DIR__ . '/../lib/projects.php';
+require __DIR__ . '/../lib/devices.php';
 
 function site_status(string $url): array
 {
@@ -246,13 +247,31 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <?php endif; ?>
   </section>
 
-  <section class="panel">
+  <?php [$dev, $devMsg] = devices_data(); ?>
+  <section class="panel" id="devices">
     <div class="panel-hd">
-      <span class="dot big wait"></span>
+      <span class="dot big <?= $dev ? 'ok' : 'wait' ?>"></span>
       <h2>設備監控</h2>
-      <span class="sub">Zabbix</span>
+      <span class="sub"><?= $dev ? '設備管理表 ' . h(substr((string) $dev['read_at'], 11, 5)) . ' 讀取 ・ 每小時更新 ・ ' . project_link($dev['sheet_url'] ?? null, '開啟設備管理表') . ' ・ 燈號＝表上資料狀態（紅＝有🔴待補或待確認、黃＝待命），還不是即時連線狀態；即時數據之後接 Zabbix' : 'Zabbix' ?></span>
     </div>
-    <p class="todo">建置中：設備清單等熊叔叔確認。</p>
+    <?php if ($devMsg !== ''): ?><div class="notice"><?= h($devMsg) ?></div><?php endif; ?>
+    <?php if ($dev): foreach (devices_grouped($dev['rows']) as $cat => $rows): ?>
+      <h3 class="dev-cat"><?= h($cat) ?>（<?= count($rows) ?>）</h3>
+      <div class="devs">
+      <?php foreach ($rows as $r): [$st, $stCls, $raw] = device_status($r); ?>
+        <details class="chip dev">
+          <summary title="<?= h((string) ($r['名稱／識別'] ?? '')) ?>"><span class="dot <?= h($stCls) ?>"></span><span class="nm"><?= h((string) ($r['名稱／識別'] ?? '—')) ?></span><?php if (($r['歸屬'] ?? '') !== 'CCNDA'): ?><span class="tag"><?= h((string) ($r['歸屬'] ?? '')) ?></span><?php endif; ?></summary>
+          <div class="nums meta">
+            <span>類型 <b><?= h((string) ($r['類型'] ?? '—')) ?></b></span>
+            <span>機型 <b><?= h((string) ($r['機型／晶片'] ?? '—')) ?></b></span>
+            <span>規格 <b><?= h((string) ($r['CPU／記憶體／OS'] ?? '—')) ?></b></span>
+            <span>負責人 <b><?= h((string) ($r['負責人'] ?? '—')) ?></b></span>
+            <span class="clamp" style="flex:1 1 100%"><?= h($raw) ?></span>
+          </div>
+        </details>
+      <?php endforeach; ?>
+      </div>
+    <?php endforeach; endif; ?>
   </section>
 
 <?php page_foot();

@@ -107,6 +107,10 @@ a:hover{text-decoration:underline}
 .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-width:0}
 .chip[open]{grid-column:1/-1}
+/* 設備監控 */
+.dev-cat{font-size:.95rem;margin:12px 0 6px;color:var(--soft);font-weight:600}
+.devs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.devs .chip[open]{grid-column:1/-1}
 /* 開發中專案 */
 .projs{display:grid;gap:10px}
 .card.proj{display:block}
