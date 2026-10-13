@@ -18,6 +18,7 @@ require __DIR__ . '/../lib/uptime.php';
 require __DIR__ . '/../lib/agents.php';
 require __DIR__ . '/../lib/projects.php';
 require __DIR__ . '/../lib/devices.php';
+require __DIR__ . '/../lib/zabbix.php';
 
 function site_status(string $url): array
 {
@@ -254,14 +255,34 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <?php endif; ?>
   </section>
 
-  <?php [$dev, $devMsg] = devices_data(); ?>
-  <section class="panel" id="devices">
+  <?php [$dev, $devMsg] = devices_data(); [$zbx, $zbxMsg] = zabbix_data();
+    $zbxCnt = ['ok' => 0, 'warn' => 0, 'bad' => 0];
+    foreach ($zbx['hosts'] ?? [] as $zh) { $zbxCnt[$zh['cls']]++; }
+    $devCls = $zbxCnt['bad'] ? 'bad' : ($zbxCnt['warn'] ? 'warn' : ($dev || $zbx ? 'ok' : 'wait')); ?>
+  <section class="panel<?= $devCls === 'bad' ? ' alert' : '' ?>" id="devices">
     <div class="panel-hd">
-      <span class="dot big <?= $dev ? 'ok' : 'wait' ?>"></span>
+      <span class="dot big <?= h($devCls) ?>"></span>
       <h2>設備監控</h2>
       <span class="sub"><?= $dev ? '設備管理表 ' . h(substr((string) $dev['read_at'], 11, 5)) . ' 讀取 ・ 每小時更新 ・ ' . project_link($dev['sheet_url'] ?? null, '開啟設備管理表') . ' ・ 燈號＝表上資料狀態（紅＝有🔴待補或待確認、黃＝待命），還不是即時連線狀態；即時數據之後接 Zabbix' : 'Zabbix' ?></span>
     </div>
     <?php if ($devMsg !== ''): ?><div class="notice"><?= h($devMsg) ?></div><?php endif; ?>
+    <h3 class="dev-cat">Zabbix 即時狀態<?= $zbx ? '（' . count($zbx['hosts']) . ' 台・' . h(date('H:i', (int) $zbx['at'])) . '）' : '' ?></h3>
+    <?php if ($zbxMsg !== ''): ?><div class="notice"><?= h($zbxMsg) ?></div><?php endif; ?>
+    <?php if ($zbx): ?>
+      <p class="note">紅＝嚴重以上或連不上・黃＝一般／警告・綠＝正常（<?= $zbxCnt['ok'] ?> 正常、<?= $zbxCnt['warn'] ?> 注意、<?= $zbxCnt['bad'] ?> 異常）；有狀況時已開通知的裝置會收到推播</p>
+      <div class="devs">
+      <?php foreach ($zbx['hosts'] as $zh): ?>
+        <details class="chip dev">
+          <summary title="<?= h($zh['name']) ?>"><span class="dot <?= h($zh['cls']) ?>"></span><span class="nm"><?= h($zh['name']) ?></span></summary>
+          <div class="nums meta">
+            <span>IP <b><?= h($zh['ip'] !== '' ? $zh['ip'] : '（agent 主動回報）') ?></b></span>
+            <?php if (!$zh['problems']): ?><span>沒有問題</span><?php endif; ?>
+            <?php foreach ($zh['problems'] as $zp): ?><span class="clamp" style="flex:1 1 100%"><?= h(['', '', '一般', '警告', '嚴重', '災難'][$zp['sev']] ?? '') ?>：<?= h($zp['name']) ?></span><?php endforeach; ?>
+          </div>
+        </details>
+      <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
     <?php if ($dev): foreach (devices_grouped($dev['rows']) as $cat => $rows): ?>
       <h3 class="dev-cat"><?= h($cat) ?>（<?= count($rows) ?>）</h3>
       <div class="devs">
