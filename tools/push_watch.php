@@ -11,6 +11,8 @@ declare(strict_types=1);
  * - 網站：UptimeRobot 狀態 9（中斷）且已連續 5 分鐘才推；恢復正常時推「已恢復」。
  * - Zabbix：嚴重（4）以上；問題消失時推「已解除」。API 權杖放 state/zabbix-push.token（沒有就跳過這段）。
  * - 數位同工:超過 90 分鐘沒有心跳(AGENTS_GREEN_MIN)推「停擺」,恢復時推「恢復」(2026-10-14 小布停 5 小時沒人收到通知)。
+ * - 同工狀態檔由小芯電腦傳上來；超過 10 分鐘(AGENTS_STALE_SEC)沒更新,由這台自己推「蒐集中斷」,
+ *   中斷期間不判斷各同工(檔案裡的時間會一起變舊,全部誤報停擺)。熊哥 10/15:「不能靠你自己監控…不然你掛了戰情室沒直接呈現」
  * - 資安事件由其他程式呼叫 tools/push_send.php(CCNDA 沒有申請單,熊哥 10/14)。
  */
 
@@ -61,7 +63,19 @@ if (is_array($up)) {
 
 // ---- 數位同工心跳 ----
 [$ag] = agents_data();
-if (is_array($ag)) {
+$feedAge = is_file(AGENTS_FILE) ? time() - (int) filemtime(AGENTS_FILE) : null;
+$feed = $feedAge !== null && $feedAge > AGENTS_STALE_SEC ? 'stale' : 'ok';
+if ($feedAge !== null && isset($st['agents_feed']) && $feed !== $st['agents_feed']) {
+    push_send($feed === 'stale'
+        ? ['title' => '蒐集中斷：小芯', 'body' => '同工狀態 ' . (int) round($feedAge / 60) . ' 分鐘沒有更新（最後 '
+            . date('H:i', (int) filemtime(AGENTS_FILE)) . '），小芯電腦可能停了；其他同工暫時判斷不了',
+            'url' => '/#agents', 'tag' => 'agents-feed']
+        : ['title' => '恢復：同工狀態蒐集', 'body' => '小芯電腦又開始傳資料了', 'url' => '/#agents', 'tag' => 'agents-feed'], 'agent');
+}
+if ($feedAge !== null) {
+    $st['agents_feed'] = $feed;
+}
+if (is_array($ag) && $feed === 'ok') {
     $first = !isset($st['agents']);
     $prev = $st['agents'] ?? [];
     $now = [];
