@@ -5,7 +5,8 @@ declare(strict_types=1);
  * 數位同工即時狀態（戰情室卡片；Asana 1219390262350870）。
  *
  * 媽媽 2026-10-11 信（熊哥 TG 按鈕「照 90分／3小時」）：
- *   即時燈號看最後一次心跳距今：≤ 90 分＝正常（綠）、90 分–3 小時＝延遲（黃）、> 3 小時＝離線（紅）
+ *   即時燈號看最後一次心跳距今：≤ 90 分＝正常（綠）、> 90 分＝停擺（紅），門檻比照小甯的存活檢查
+ *   （2026-10-14：小布 16:45 起停 5 小時，原本要 3 小時才轉紅、也不推播；熊哥：「要趕緊讓小芯協助監測所有設備」）
  *   （10/12 改 60、10/13 依一晚心跳紀錄改回 90）
  *   第二道沿用早報：heartbeat_check.py 判讀不是 alive（今天 07:00 後沒有排程心跳等）＝標「今日未報到」
  *
@@ -15,7 +16,6 @@ declare(strict_types=1);
 
 const AGENTS_FILE = __DIR__ . '/../state/agents.json';
 const AGENTS_GREEN_MIN = 90;  // 熊哥 2026-10-13：「B 都維持90吧」（10/12 曾改 60；每小時一班的同工間隔常在 60–77 分，60 會常亮黃燈）
-const AGENTS_YELLOW_MIN = 180;
 const AGENTS_STALE_SEC = 600;
 
 /** @return array{0: ?array, 1: string} [資料, 提示] */
@@ -68,10 +68,8 @@ function agent_view(array $r, int $now): array
         [$cls, $live] = ['bad', '沒有心跳'];
     } elseif ($min <= AGENTS_GREEN_MIN) {
         [$cls, $live] = ['ok', '正常'];
-    } elseif ($min <= AGENTS_YELLOW_MIN) {
-        [$cls, $live] = ['warn', '延遲'];
     } else {
-        [$cls, $live] = ['bad', '離線'];
+        [$cls, $live] = ['bad', '停擺'];
     }
     if (($r['status'] ?? '') === 'pending') {
         [$cls, $live] = ['paused', '尚未部署'];

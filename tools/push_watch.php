@@ -10,7 +10,8 @@ declare(strict_types=1);
  * - 第一次跑（或新增來源）只記下目前狀態，不推舊資料，免得一開就跳一堆。
  * - 網站：UptimeRobot 狀態 9（中斷）且已連續 5 分鐘才推；恢復正常時推「已恢復」。
  * - Zabbix：嚴重（4）以上；問題消失時推「已解除」。API 權杖放 state/zabbix-push.token（沒有就跳過這段）。
- * - 資安事件、新申請單由其他程式呼叫 tools/push_send.php。
+ * - 數位同工:超過 90 分鐘沒有心跳(AGENTS_GREEN_MIN)推「停擺」,恢復時推「恢復」(2026-10-14 小布停 5 小時沒人收到通知)。
+ * - 資安事件由其他程式呼叫 tools/push_send.php(CCNDA 沒有申請單,熊哥 10/14)。
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -18,6 +19,7 @@ if (PHP_SAPI !== 'cli') {
 }
 require __DIR__ . '/../lib/webpush.php';
 require __DIR__ . '/../lib/uptime.php';
+require __DIR__ . '/../lib/agents.php';
 date_default_timezone_set('Asia/Taipei');
 
 const WATCH_FILE = PUSH_STATE_DIR . '/push_watch.json';
@@ -55,6 +57,33 @@ if (is_array($up)) {
         }
     }
     $st['uptime'] = $now;
+}
+
+// ---- 數位同工心跳 ----
+[$ag] = agents_data();
+if (is_array($ag)) {
+    $first = !isset($st['agents']);
+    $prev = $st['agents'] ?? [];
+    $now = [];
+    foreach ($ag['rows'] as $r) {
+        $v = agent_view($r, time());
+        if ($v['agent'] === '' || $v['cls'] === 'paused') {
+            continue;   // 尚未部署的不算
+        }
+        $id = $v['agent'];
+        $now[$id] = $v['cls'] === 'bad' ? 'down' : 'up';
+        if ($first) {
+            continue;
+        }
+        if ($now[$id] === 'down' && ($prev[$id] ?? 'up') !== 'down') {
+            push_send(['title' => '停擺：' . $v['name'], 'body' => '超過 ' . AGENTS_GREEN_MIN . ' 分鐘沒有心跳'
+                . (!empty($r['ts']) ? '（最後 ' . date('H:i', (int) strtotime((string) $r['ts'])) . '）' : ''),
+                'url' => '/#agents', 'tag' => 'agent-' . $id], 'agent');
+        } elseif ($now[$id] === 'up' && ($prev[$id] ?? 'up') === 'down') {
+            push_send(['title' => '恢復：' . $v['name'], 'body' => '又有心跳了', 'url' => '/#agents', 'tag' => 'agent-' . $id], 'agent');
+        }
+    }
+    $st['agents'] = $now;
 }
 
 // ---- Zabbix 嚴重（4）以上 ----
