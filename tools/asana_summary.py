@@ -7,6 +7,8 @@
     宓芯的帳號只看得到她加入的專案。Asana 權杖沒有唯讀選項，這支程式只做 GET；熊哥可隨時在 Asana 撤銷。
 - 範圍：CCNDA 工作區、熊哥帳號看得到的任務（含子任務）
 - 時間以台北時間計算「今天」「本月」
+- 排除：【範本來源】月重點執行任務（任務本來就不帶日期）與已封存專案的任務；子任務看母任務屬於哪裡
+  熊哥 2026-10-15 19:2x TG 按鈕裁示（媽媽信轉達；Asana 1219533857034205）
 - cron（cora）：7 * * * * python3 /srv/dev/ops.ccnda.net/tools/asana_summary.py
 """
 import datetime as dt, json, os, sys, time, urllib.parse, urllib.request, urllib.error
@@ -14,7 +16,8 @@ import datetime as dt, json, os, sys, time, urllib.parse, urllib.request, urllib
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "state")
 WS = "368265232362384"
 TZ = dt.timezone(dt.timedelta(hours=8))
-FIELDS = "name,due_on,completed,completed_at,assignee.name,permalink_url,created_at"
+FIELDS = "name,due_on,completed,completed_at,assignee.name,permalink_url,created_at,memberships.project.gid,parent.gid"
+TEMPLATE_PROJECT = "1219045142697771"  # 【範本來源】月重點執行任務
 
 def api(path, params):
     tok = open(os.path.join(BASE, "asana.pat"), encoding="utf-8-sig").read().strip()
@@ -50,6 +53,37 @@ def search(**filters):
         if before == p.get("created_at.before"):  # 同一秒超過 100 張才會發生；避免無限迴圈
             return out
 
+def excluded_projects():
+    """範本專案＋所有已封存專案。"""
+    out, offset = {TEMPLATE_PROJECT}, None
+    while True:
+        p = {"workspace": WS, "archived": "true", "limit": 100, "opt_fields": "gid"}
+        if offset:
+            p["offset"] = offset
+        tok = open(os.path.join(BASE, "asana.pat"), encoding="utf-8-sig").read().strip()
+        url = "https://app.asana.com/api/1.0/projects?" + urllib.parse.urlencode(p)
+        r = json.loads(urllib.request.urlopen(urllib.request.Request(
+            url, headers={"Authorization": "Bearer " + tok}), timeout=30).read())
+        out |= {x["gid"] for x in r["data"]}
+        offset = (r.get("next_page") or {}).get("offset")
+        if not offset:
+            return out
+
+def make_is_excluded(excl):
+    """任務本身在排除專案裡，或任何一層母任務在裡面，就排除。
+    子任務本身沒有 memberships，所以要往上找母任務（結果快取，同一個母任務只查一次）。"""
+    cache = {}
+    def check(t, depth=0):
+        if any((m.get("project") or {}).get("gid") in excl for m in t.get("memberships") or []):
+            return True
+        parent = (t.get("parent") or {}).get("gid")
+        if not parent or depth > 10:
+            return False
+        if parent not in cache:
+            cache[parent] = check(api(f"/tasks/{parent}", {"opt_fields": "memberships.project.gid,parent.gid"}), depth + 1)
+        return cache[parent]
+    return check
+
 def brief(t):
     return {"name": t["name"], "due": t.get("due_on"), "who": (t.get("assignee") or {}).get("name"),
             "url": t.get("permalink_url"), "done_at": t.get("completed_at")}
@@ -61,8 +95,10 @@ def main():
     m1 = (m0 + dt.timedelta(days=32)).replace(day=1)
     d = lambda x: x.isoformat()
 
-    open_tasks = search(completed="false")
-    done_month = search(completed="true", **{"completed_on.after": d(m0 - dt.timedelta(days=1))})
+    is_excluded = make_is_excluded(excluded_projects())
+    open_tasks = [t for t in search(completed="false") if not is_excluded(t)]
+    done_month = [t for t in search(completed="true", **{"completed_on.after": d(m0 - dt.timedelta(days=1))})
+                  if not is_excluded(t)]
 
     buckets = {
         "today_due":  [t for t in open_tasks if t.get("due_on") == d(today)],
