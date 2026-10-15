@@ -19,6 +19,7 @@ require __DIR__ . '/../lib/agents.php';
 require __DIR__ . '/../lib/projects.php';
 require __DIR__ . '/../lib/devices.php';
 require __DIR__ . '/../lib/zabbix.php';
+require __DIR__ . '/../lib/linode.php';
 
 function site_status(string $url): array
 {
@@ -300,6 +301,40 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       <?php endforeach; ?>
       </div>
     <?php endforeach; endif; ?>
+  </section>
+
+  <?php [$lin, $linMsg] = linode_data();
+    $linCnt = ['ok' => 0, 'warn' => 0, 'bad' => 0];
+    foreach ($lin['hosts'] ?? [] as $lh) { if (isset($linCnt[$lh['cls']])) { $linCnt[$lh['cls']]++; } }
+    $linCls = !$lin ? 'wait' : ($linCnt['bad'] ? 'bad' : ($linCnt['warn'] ? 'warn' : 'ok'));
+    $linWord = ['ok' => '正常', 'warn' => '注意', 'bad' => '異常', 'wait' => '等待資料']; ?>
+  <section class="panel<?= $linCls === 'bad' ? ' alert' : '' ?>" id="linode">
+    <div class="panel-hd">
+      <span class="dot big <?= h($linCls) ?>" role="img" aria-label="<?= h($linWord[$linCls]) ?>"></span>
+      <h2>Linode 主機</h2>
+      <span class="sub"><?= $lin ? '更新於 ' . h(date('H:i', (int) $lin['at'])) . ' ・ 每 5 分鐘・數字是最近 30 分鐘平均' : 'Linode API' ?></span>
+    </div>
+    <?php if ($linMsg !== ''): ?><div class="notice"><?= h($linMsg) ?></div><?php endif; ?>
+    <?php if ($lin): ?>
+      <p class="note">紅＝主機沒在跑、CPU ≥ 90% 或 swap ≥ 20・黃＝CPU ≥ 70% 或 swap ≥ 5・綠＝正常（<?= $linCnt['ok'] ?> 正常、<?= $linCnt['warn'] ?> 注意、<?= $linCnt['bad'] ?> 異常）。Linode 拿不到記憶體用量，用 swap 寫入量代替：平常是 0，持續有 swap 就是記憶體不夠</p>
+      <div class="devs">
+      <?php foreach ($lin['hosts'] as $lh): ?>
+        <details class="chip dev"<?= $lh['cls'] !== 'ok' ? ' open' : '' ?>>
+          <summary title="<?= h($lh['label']) ?>"><span class="dot <?= h($lh['cls']) ?>" role="img" aria-label="<?= h($linWord[$lh['cls']] ?? '') ?>"></span><span class="nm"><?= h($lh['label']) ?></span><span class="sub">CPU <?= h(linode_num($lh['cpu_avg'], '%')) ?></span></summary>
+          <div class="nums meta">
+            <?php if ($lh['why']): ?><span class="clamp" style="flex:1 1 100%"><b><?= h(implode('、', $lh['why'])) ?></b></span><?php endif; ?>
+            <span>狀態 <b><?= h($lh['status']) ?></b></span>
+            <span>規格 <b><?= (int) $lh['vcpus'] ?> 核・<?= h(linode_num($lh['memory_mb'] / 1024, ' GB')) ?></b></span>
+            <span>CPU（每核）<b><?= h(linode_num($lh['cpu_avg'], '%')) ?></b>，現在 <?= h(linode_num($lh['cpu_now'], '%')) ?></span>
+            <span>swap <b><?= h(linode_num($lh['swap_avg'])) ?></b></span>
+            <span>磁碟 IO <b><?= h(linode_num($lh['io_avg'])) ?></b></span>
+            <span>網路 進 <b><?= h(linode_num($lh['net_in_kbps'], ' kbps')) ?></b>／出 <b><?= h(linode_num($lh['net_out_kbps'], ' kbps')) ?></b></span>
+            <span>IP <b><?= h($lh['ip']) ?></b></span>
+          </div>
+        </details>
+      <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
   </section>
 
 <?php page_foot();

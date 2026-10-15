@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * 設備管理表（戰情室設備監控區塊；Asana 1219442962700669）。
  * 熊哥 2026-10-13：「CCNDA 設備管理表」整份（含 Linode 主機）做進戰情室。
- * 資料：小芯電腦的排程 devices_push.py 每小時用服務帳號讀共用硬碟的試算表，
+ * 資料：cora-lab 的排程 devices_push.py（~/.config/gws）每小時用服務帳號讀共用硬碟的試算表，
  *       傳成 state/devices_table.json（只有表格內容，沒有憑證）。
  */
 
@@ -14,14 +14,14 @@ const DEVICES_FILE = __DIR__ . '/../state/devices_table.json';
 function devices_data(): array
 {
     if (!is_file(DEVICES_FILE)) {
-        return [null, '還沒有設備資料（等小芯電腦的排程第一次傳上來）。'];
+        return [null, '還沒有設備資料（等 cora-lab 的排程第一次跑）。'];
     }
     $d = json_decode((string) file_get_contents(DEVICES_FILE), true);
     if (!is_array($d) || !isset($d['rows']) || !is_array($d['rows'])) {
         return [null, '設備資料格式不對。'];
     }
     $age = time() - (int) filemtime(DEVICES_FILE);
-    return [$d, $age > 3 * 3600 ? '設備資料超過 3 小時沒有更新（小芯電腦的排程可能停了）。' : ''];
+    return [$d, $age > 3 * 3600 ? '設備資料超過 3 小時沒有更新（cora-lab 的排程可能停了）。' : ''];
 }
 
 /** 依「類別」分組，保留表格原本的順序 */
