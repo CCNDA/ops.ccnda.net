@@ -384,7 +384,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
         <p class="note">過去 7 天沒有流量：<?= h(implode('、', array_map(fn($s) => $s['name'], $gaQuiet))) ?></p>
       <?php endif; ?>
       <?php $scAny = array_values(array_filter(array_map(fn($s) => $s['search'] ?? null, $gaLive), fn($x) => $x && !isset($x['err']))); ?>
-      <p class="note">Google 搜尋的數字約晚 2 天<?= $scAny ? '（' . h(substr((string) $scAny[0]['from'], 5)) . '～' . h(substr((string) $scAny[0]['to'], 5)) . '）' : '' ?>；「未授權」＝ Search Console 還沒把 cora@ccnda.org 加成使用者。</p>
+      <p class="note">Google 搜尋的數字約晚 2 天<?= $scAny ? '（' . h(substr((string) $scAny[0]['from'], 5)) . '～' . h(substr((string) $scAny[0]['to'], 5)) . '）' : '' ?>；網域資源（例如 taiwanbible.com）每一列只算自己網址的網頁，所以跟 Search Console 整個資源的總數會有些微差異。「未授權」＝ Search Console 還沒把 cora@ccnda.org 加成使用者。</p>
     <?php endif; ?>
   </section>
 

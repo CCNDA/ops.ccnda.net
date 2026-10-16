@@ -10,7 +10,7 @@
 - 某個資源讀失敗只記在那一列（err），不影響其他列
 - cron（cora）：3-59/15 * * * * cd $HOME/.config/gws && TZ=Asia/Taipei python3 /srv/dev/ops.ccnda.net/tools/ga_stats.py
 """
-import datetime as dt, json, os, sys, time, urllib.parse, urllib.request, urllib.error
+import datetime as dt, json, os, re, sys, time, urllib.parse, urllib.request, urllib.error
 
 sys.path.insert(0, os.path.expanduser("~/.config/gws"))
 import get_sa_token  # noqa: E402
@@ -52,11 +52,14 @@ def ga_site(pid, tok):
     return out
 
 
-def sc_site(url, tok):
+def sc_site(url, tok, filters=None):
     end = dt.date.today() - dt.timedelta(days=3)
     start = end - dt.timedelta(days=6)
+    body = {"startDate": start.isoformat(), "endDate": end.isoformat()}
+    if filters:  # 只算這一列自己的網頁（網域資源會把子網域、子路徑加在一起）
+        body["dimensionFilterGroups"] = [{"groupType": "and", "filters": filters}]
     r = call(f"https://www.googleapis.com/webmasters/v3/sites/{urllib.parse.quote(url, safe='')}/searchAnalytics/query",
-             tok, {"startDate": start.isoformat(), "endDate": end.isoformat()})
+             tok, body)
     row = (r.get("rows") or [{}])[0]
     return {"site": url, "from": start.isoformat(), "to": end.isoformat(),
             "clicks": int(row.get("clicks", 0)), "impressions": int(row.get("impressions", 0)),
@@ -80,6 +83,31 @@ def sc_for(uri, sc_sites):
         return exact[0]
     dom = [s for s in sc_sites if s.startswith("sc-domain:") and (h == host_of(s) or h.endswith("." + host_of(s)))]
     return dom[0] if dom else None
+
+
+def page_prefix(uri):
+    """GA 網址 → (主機, 路徑)：https://www.taiwanbible.com/point/ → ('taiwanbible.com', '/point/')"""
+    p = urllib.parse.urlparse(uri or "")
+    path = p.path or "/"
+    return host_of(uri), path if path.endswith("/") else path + "/"
+
+
+def page_regex(host, path):
+    """比對這一列的網頁網址；www. 可有可無"""
+    return "^https?://(www\\.)?" + re.escape(host) + re.escape(path)
+
+
+def sc_filters(row, rows, matched_site):
+    """網域資源、或網址有子路徑時，加網頁篩選：包含自己的前綴，排除同主機上更深的其他列（例如主站排除 /point/）"""
+    host, path = page_prefix(row.get("uri"))
+    if not matched_site.startswith("sc-domain:") and path == "/":
+        return None
+    f = [{"dimension": "page", "operator": "includingRegex", "expression": page_regex(host, path)}]
+    for other in rows:
+        oh, op = page_prefix(other.get("uri"))
+        if other is not row and oh == host and op != path and op.startswith(path):
+            f.append({"dimension": "page", "operator": "excludingRegex", "expression": page_regex(oh, op)})
+    return f
 
 
 def main():
@@ -107,7 +135,7 @@ def main():
             row["search"] = {"err": "未授權"}
             continue
         try:
-            row["search"] = sc_site(hit, tok)
+            row["search"] = sc_site(hit, tok, sc_filters(row, sites, hit))
         except urllib.error.HTTPError as e:
             row["search"] = {"site": hit, "err": f"HTTP {e.code}"}
         sc.append(row["search"])
