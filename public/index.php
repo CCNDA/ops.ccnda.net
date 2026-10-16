@@ -274,19 +274,22 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <?php if ($zbxMsg !== ''): ?><div class="notice"><?= h($zbxMsg) ?></div><?php endif; ?>
     <?php if ($zbx): ?>
       <p class="note">紅＝嚴重以上或連不上・黃＝一般／警告・綠＝正常（<?= $zbxCnt['ok'] ?> 正常、<?= $zbxCnt['warn'] ?> 注意、<?= $zbxCnt['bad'] ?> 異常）；有狀況時已開通知的裝置會收到推播</p>
-      <?php $clsWord = ['ok' => '正常', 'warn' => '注意', 'bad' => '異常'];
+      <?php $clsWord = ['ok' => '正常', 'warn' => '注意', 'bad' => '異常', 'wait' => '沒有監控'];
         foreach (device_grouped($zbx['hosts']) as $grp => $hs): ?>
       <h4 class="dev-grp"><?= h($grp) ?></h4>
       <div class="devs">
       <?php foreach ($hs as $zh): ?>
         <details class="chip dev">
           <summary><span class="dot <?= h($zh['cls']) ?>" role="img" aria-label="<?= h($clsWord[$zh['cls']] ?? '') ?>"></span><span class="nm"><?= h($zh['label']) ?></span>
+            <?php if (!empty($zh['unmonitored'])): ?><span class="why soft">還沒裝監控</span><?php endif; ?>
             <?php if ($zh['problems']): ?><span class="why"><?= h(device_problem_text($zh['problems'][0]['name'])) ?><?= count($zh['problems']) > 1 ? ' 等 ' . count($zh['problems']) . ' 項' : '' ?></span><?php endif; ?></summary>
           <div class="nums meta">
             <?php if ($zh['note'] !== ''): ?><span class="clamp" style="flex:1 1 100%"><?= h($zh['note']) ?></span><?php endif; ?>
+            <?php if (empty($zh['unmonitored'])): ?>
             <span>IP <b><?= h($zh['ip'] !== '' ? $zh['ip'] : '（agent 主動回報）') ?></b></span>
             <span>Zabbix <b><?= h(implode('、', array_merge([$zh['name']], $zh['also']))) ?></b></span>
             <?php if (!$zh['problems']): ?><span>沒有問題</span><?php endif; ?>
+            <?php endif; ?>
             <?php foreach ($zh['problems'] as $zp): ?><span class="clamp" style="flex:1 1 100%"><?= h(['', '', '一般', '警告', '嚴重', '災難'][$zp['sev']] ?? '') ?>：<?= h(device_problem_text($zp['name'])) ?></span><?php endforeach; ?>
           </div>
         </details>

@@ -116,6 +116,7 @@ a:hover{text-decoration:underline}
 .dev-grp{font-size:.85rem;margin:10px 0 4px;color:var(--soft);font-weight:600}
 .chip summary .why{flex:1 1 100%;font-size:.8rem;color:var(--warn-ink,#8a4b00);white-space:normal}
 .chip.dev summary{flex-wrap:wrap}
+.chip summary .why.soft{color:var(--soft)}
 details.sheet{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
 details.sheet>summary{cursor:pointer;color:var(--soft);font-size:.9rem;font-weight:600}
 /* 網站流量（表格；手機上可左右捲，捲動區可用鍵盤聚焦） */

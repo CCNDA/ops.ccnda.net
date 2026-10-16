@@ -29,6 +29,12 @@ const DEVICE_NAMES = [
     '192.168.193.54'  => ['網路與儲存', '印表機', 'EPSON45D841'],
 ];
 
+/** 應該出現、但 Zabbix 還沒有的設備：灰燈顯示「還沒裝監控」，清單才完整（熊哥 10/16「同工電腦少了小霏 他是MAC」） */
+const DEVICE_EXPECTED = [
+    // [分組, 顯示名稱, 說明]
+    ['同工的電腦', '小霏', 'iMac 24" M1（macOS），實體機；還沒裝監控'],
+];
+
 /** 依分組排好：['宿主機' => [主機…], …]；每台加上 label、note、group */
 function device_grouped(array $hosts): array
 {
@@ -43,8 +49,15 @@ function device_grouped(array $hosts): array
         [$g, $label, $note] = DEVICE_NAMES[$key ?? ''] ?? ['其他', $h['name'], ''];
         $out[$g][] = $h + ['label' => $label, 'note' => $note];
     }
+    foreach (DEVICE_EXPECTED as [$g, $label, $note]) {
+        if (!in_array($label, array_column($out[$g], 'label'), true)) {
+            $out[$g][] = ['name' => '', 'ip' => '', 'cls' => 'wait', 'problems' => [], 'also' => [],
+                'label' => $label, 'note' => $note, 'unmonitored' => true];
+        }
+    }
     foreach ($out as &$list) {   // 有狀況的排前面，其餘照名稱
-        usort($list, fn($a, $b) => [$a['cls'] === 'ok', $a['label']] <=> [$b['cls'] === 'ok', $b['label']]);
+        usort($list, fn($a, $b) => [in_array($a['cls'], ['ok', 'wait'], true), $a['label']]
+            <=> [in_array($b['cls'], ['ok', 'wait'], true), $b['label']]);
     }
     return array_filter($out);
 }

@@ -9,6 +9,7 @@ CCNDA 戰情室 ops.ccnda.net 每一版的重點變更。版本號採 `主版本
 
 - 設備分成「宿主機／同工的電腦／伺服器／網路與儲存」，名稱改短（LOVE、小薇、NAS 716Plus…），IP 與說明放進展開的細節；只是戰情室的顯示對照（lib/device_names.php），不改 Zabbix 主機名，熊哥統一命名後跟著改（熊哥 10/16「資訊呈現太亂」；Asana 1219442962700669）
 - 宿主機只有 FAITH、HOPE、LOVE 三台（熊哥 10/16）；WHOST02 放「伺服器」
+- 應該在、但 Zabbix 還沒有的設備用灰燈列出並寫「還沒裝監控」：先放小霏的 iMac（熊哥 10/16「同工電腦少了小霏 他是MAC」）
 - 黃燈、紅燈的卡片上直接寫原因（例：「Windows Time」服務沒在跑），不用點開
 - Zabbix 的 Windows 模板把平常就不常駐的服務排除（Google 更新、AppX、Intel 顯示卡控制台、智慧卡、EaseUS 更新）：原本 5 台黃燈裡 4 台都是這些，Zabbix 下一輪探索服務後會消失；WHOST02 的 Windows Time 是真的要修
 - Lighthouse 無障礙 100
