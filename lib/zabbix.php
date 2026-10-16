@@ -72,3 +72,38 @@ function zabbix_data(): array
             '暫時讀不到 Zabbix' . (is_array($cached) ? '，以下是 ' . date('H:i', (int) $cached['at']) . ' 的資料。' : '。')];
     }
 }
+
+/**
+ * 同一台機器在 Zabbix 常有兩筆：舊的 ping 監控（名稱有說明，例「宿主機 LOVE 192.168.194.18…」）和
+ * 10/16 裝的 agent（短名，例 love）。依 IP 合成一張：名稱用有說明的那個，燈號取最嚴重，問題合併，
+ * agent 短名放在 'also' 裡顯示。沒有 IP 的（agent 主動回報）不合併。熊哥 10/16「資訊有重複」。
+ */
+function zabbix_merge_by_ip(array $hosts): array
+{
+    $rank = ['ok' => 0, 'warn' => 1, 'bad' => 2];
+    $byIp = [];
+    $out = [];
+    foreach ($hosts as $h) {
+        if ($h['ip'] === '') {
+            $out[] = $h + ['also' => []];
+            continue;
+        }
+        $byIp[$h['ip']][] = $h;
+    }
+    foreach ($byIp as $group) {
+        // 名稱：有中文或空白的（ping 監控取的說明名）優先，否則取最長的
+        usort($group, fn($a, $b) => [preg_match('/[\p{Han}\s]/u', $b['name']), mb_strlen($b['name'])]
+            <=> [preg_match('/[\p{Han}\s]/u', $a['name']), mb_strlen($a['name'])]);
+        $m = $group[0];
+        $m['also'] = array_values(array_map(fn($g) => $g['name'], array_slice($group, 1)));
+        foreach (array_slice($group, 1) as $g) {
+            if ($rank[$g['cls']] > $rank[$m['cls']]) {
+                $m['cls'] = $g['cls'];
+            }
+            $m['problems'] = array_merge($m['problems'], $g['problems']);
+        }
+        $out[] = $m;
+    }
+    usort($out, fn($a, $b) => [$a['cls'] === 'ok', $a['name']] <=> [$b['cls'] === 'ok', $b['name']]);
+    return $out;
+}

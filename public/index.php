@@ -258,6 +258,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
   </section>
 
   <?php [$dev, $devMsg] = devices_data(); [$zbx, $zbxMsg] = zabbix_data();
+    if ($zbx) { $zbx['hosts'] = zabbix_merge_by_ip($zbx['hosts']); }   // 同一台的 agent＋ping 合成一張
     $zbxCnt = ['ok' => 0, 'warn' => 0, 'bad' => 0];
     foreach ($zbx['hosts'] ?? [] as $zh) { $zbxCnt[$zh['cls']]++; }
     $devCls = $zbxCnt['bad'] ? 'bad' : ($zbxCnt['warn'] ? 'warn' : ($dev || $zbx ? 'ok' : 'wait')); ?>
@@ -265,7 +266,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     <div class="panel-hd">
       <span class="dot big <?= h($devCls) ?>"></span>
       <h2>設備監控</h2>
-      <span class="sub"><?= $dev ? '設備管理表 ' . h(substr((string) $dev['read_at'], 11, 5)) . ' 讀取 ・ 每小時更新 ・ ' . project_link($dev['sheet_url'] ?? null, '開啟設備管理表') . ' ・ 燈號＝表上資料狀態（紅＝有🔴待補或待確認、黃＝待命），還不是即時連線狀態；即時數據之後接 Zabbix' : 'Zabbix' ?></span>
+      <span class="sub"><?= $dev ? 'Zabbix 即時狀態，每分鐘更新 ・ 下方可展開設備管理表（資產資料）' : 'Zabbix' ?></span>
     </div>
     <?php if ($devMsg !== ''): ?><div class="notice"><?= h($devMsg) ?></div><?php endif; ?>
     <h3 class="dev-cat">Zabbix 即時狀態<?= $zbx ? '（' . count($zbx['hosts']) . ' 台・' . h(date('H:i', (int) $zbx['at'])) . '）' : '' ?></h3>
@@ -278,6 +279,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
           <summary title="<?= h($zh['name']) ?>"><span class="dot <?= h($zh['cls']) ?>"></span><span class="nm"><?= h($zh['name']) ?></span></summary>
           <div class="nums meta">
             <span>IP <b><?= h($zh['ip'] !== '' ? $zh['ip'] : '（agent 主動回報）') ?></b></span>
+            <?php if ($zh['also']): ?><span>Zabbix 也叫 <b><?= h(implode('、', $zh['also'])) ?></b></span><?php endif; ?>
             <?php if (!$zh['problems']): ?><span>沒有問題</span><?php endif; ?>
             <?php foreach ($zh['problems'] as $zp): ?><span class="clamp" style="flex:1 1 100%"><?= h(['', '', '一般', '警告', '嚴重', '災難'][$zp['sev']] ?? '') ?>：<?= h($zp['name']) ?></span><?php endforeach; ?>
           </div>
@@ -285,7 +287,11 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       <?php endforeach; ?>
       </div>
     <?php endif; ?>
-    <?php if ($dev): foreach (devices_grouped($dev['rows']) as $cat => $rows): ?>
+    <?php if ($dev): $devRows = array_values(array_filter($dev['rows'], fn($r) => ($r['類別'] ?? '') !== '雲端主機')); ?>
+    <details class="sheet">
+      <summary>設備管理表（資產資料：歸屬、機型、規格、負責人，<?= count($devRows) ?> 台）・<?= h(substr((string) $dev['read_at'], 11, 5)) ?> 讀取</summary>
+      <p class="note"><?= project_link($dev['sheet_url'] ?? null, '開啟設備管理表') ?> ・ 這裡的燈號是表上資料齊不齊（紅＝有待補或待確認、黃＝待命），不是連線狀態；連線狀態看上面的 Zabbix。雲端主機（Linode）看下面的 Linode 主機卡。</p>
+    <?php foreach (devices_grouped($devRows) as $cat => $rows): ?>
       <h3 class="dev-cat"><?= h($cat) ?>（<?= count($rows) ?>）</h3>
       <div class="devs">
       <?php foreach ($rows as $r): [$st, $stCls, $raw] = device_status($r); ?>
@@ -301,7 +307,9 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
         </details>
       <?php endforeach; ?>
       </div>
-    <?php endforeach; endif; ?>
+    <?php endforeach; ?>
+    </details>
+    <?php endif; ?>
   </section>
 
   <?php [$lin, $linMsg] = linode_data();
