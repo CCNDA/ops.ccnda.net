@@ -20,6 +20,7 @@ const DEVICE_NAMES = [
     '192.168.194.20'  => ['同工的電腦', '小布', 'Black02，在 LOVE 上'],
     '192.168.194.21'  => ['同工的電腦', '小鹿', 'Ubuntu VM，在 LOVE 上'],
     'cora-pc'         => ['同工的電腦', '小芯', 'Hope-Cora，192.168.193.19，在 HOPE 上'],
+    'faye-imac'       => ['同工的電腦', '小霏', 'iMac 24" M1（macOS），實體機；IP 是 DHCP，用主機名對照'],
     'cora-lab'        => ['伺服器', 'cora-lab', '測試機＋Zabbix 伺服器＋戰情室'],
     '192.168.193.16'  => ['伺服器', 'FaithBettle', 'FAITH 上的 VM'],
     '192.168.193.1'   => ['網路與儲存', '防火牆／閘道', '5 樓'],
@@ -40,8 +41,8 @@ function device_grouped(array $hosts): array
 {
     $out = array_fill_keys(DEVICE_GROUPS, []);
     foreach ($hosts as $h) {
-        $key = $h['ip'] !== '' ? $h['ip'] : null;
-        if ($key === null) {
+        $key = ($h['ip'] !== '' && isset(DEVICE_NAMES[$h['ip']])) ? $h['ip'] : null;
+        if ($key === null) {   // 沒有 IP、或 IP 不在表上（例如 DHCP 的 iMac）→ 用 Zabbix 主機名對照
             foreach (array_keys(DEVICE_NAMES) as $k) {
                 if (!str_contains($k, '.') && str_contains($h['name'], $k)) { $key = $k; break; }
             }
