@@ -5,6 +5,10 @@ CCNDA 戰情室 ops.ccnda.net 每一版的重點變更。版本號採 `主版本
 
 ---
 
+## [1.16.2] - 2026-10-16 —— 網站流量卡拿掉聖經與世界瞭望
+
+- bibletower.net 已經關閉（熊哥 10/16），用 GA 資源編號排除（Asana 1219379138644448）
+
 ## [1.16.1] - 2026-10-16 —— Google 搜尋每列只算自己的網址
 
 - 熊哥加了 4 個 Search Console 網域資源（ccnda.org、oursweb.net、taiwanbible.com、loveuno.com）。網域資源會把子網域、子路徑加在一起（taiwanbible.com 會連讀書會、點數中心一起算），改成每一列用網頁網址篩選只算自己；同主機的子路徑（點數中心 /point/）從主站那列排除（Asana 1219379138644448）
