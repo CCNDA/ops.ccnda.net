@@ -14,6 +14,10 @@ import datetime as dt, json, os, sys, time, urllib.parse, urllib.request, urllib
 sys.path.insert(0, os.path.expanduser("~/.config/gws"))
 import get_sa_token  # noqa: E402
 
+# 不放上卡片的 GA 資源（用編號，不用名稱比對）：
+# properties/311712282 熊族大雜燴（jbear.net）——熊哥 10/16：「不用上，這個網站幾乎關閉指內部使用」
+# （只影響流量卡；jbear.net 仍在 Cloudflare 資安監控名單）
+EXCLUDE = {"properties/311712282"}
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "state", "ga.json")
 get_sa_token.SCOPES = "https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly"
 
@@ -63,6 +67,8 @@ def main():
     sites = []
     for a in acc.get("accountSummaries", []):
         for p in a.get("propertySummaries", []):
+            if p["property"] in EXCLUDE:
+                continue
             row = {"property": p["property"], "name": p["displayName"].replace(" - GA4", "").replace(" - GA 4", "").strip()}
             try:
                 row.update(ga_site(p["property"], tok))
