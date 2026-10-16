@@ -123,6 +123,25 @@ details.sheet>summary{cursor:pointer;color:var(--soft);font-size:.9rem;font-weig
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .tblwrap{overflow-x:auto;margin:8px 0}
 .tblwrap:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+/* 網站流量小卡片（v1.18.0）：數值用比例數字（大字不用 tabular-nums），趨勢線顏色經 dataviz 驗證 */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:8px 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.tile-nm{font-size:.9rem;margin:0 0 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile-nm a{color:var(--ink);text-decoration:none}.tile-nm a:hover,.tile-nm a:focus-visible{text-decoration:underline}
+.tile-val{font-size:1.7rem;font-weight:600;margin:0;line-height:1.2}
+.tile-unit{font-size:.8rem;font-weight:400;color:var(--soft)}
+.tile-delta{font-size:.82rem;margin:2px 0 6px;color:var(--soft)}
+.tile-delta.up span[aria-hidden]{color:var(--ok);font-weight:600}.tile-delta.down span[aria-hidden]{color:var(--bad);font-weight:600}
+.tile-meta{font-size:.8rem;color:var(--soft);margin:6px 0 0}.tile-meta b{color:var(--ink);font-weight:600}
+.spark-wrap{position:relative}
+.spark{display:block;width:100%;height:44px;overflow:visible}
+.spark:focus-visible{outline:2px solid var(--link);outline-offset:2px;border-radius:4px}
+.spark polyline{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.spark-old{stroke:#4799cd}.spark-new{stroke:#0e6d94}
+.spark-x{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.spark-dot{fill:#0e6d94;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
+.spark-tip{position:absolute;top:-26px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:.75rem;padding:2px 8px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .1s}
+.spark-tip.on{opacity:1}
 .tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.9rem}
 .tbl th,.tbl td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .tbl thead th{color:var(--soft);font-weight:600}

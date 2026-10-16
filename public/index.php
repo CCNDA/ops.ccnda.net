@@ -364,47 +364,56 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     </div>
     <?php if ($gaMsg !== ''): ?><div class="notice"><?= h($gaMsg) ?></div><?php endif; ?>
     <?php if ($ga): ?>
-      <p class="note">「即時」是最近 30 分鐘在線上的人；7 天、30 天都到昨天為止。「今天」GA 要處理幾個小時才有（大流量的站可能要到隔天），還沒處理到的顯示「—」，不是 0 人。</p>
-      <div class="tblwrap" role="region" aria-label="各網站使用者人數" tabindex="0">
-        <table class="tbl">
-          <caption class="sr">各網站使用者人數</caption>
-          <thead>
-            <tr><th scope="col" rowspan="2">網站</th><th scope="colgroup" colspan="5">使用者（Google Analytics）</th><th scope="colgroup" colspan="3">Google 搜尋（7 天）</th></tr>
-            <tr><th scope="col">即時</th><th scope="col">今天</th><th scope="col">昨天</th><th scope="col">7 天</th><th scope="col">30 天</th><th scope="col">點擊</th><th scope="col">曝光</th><th scope="col">平均排名</th></tr>
-          </thead>
-          <tbody>
-          <?php foreach ($gaLive as $s): ?>
-            <tr>
-              <th scope="row"><?php if (!empty($s['uri'])): ?><a href="<?= h($s['uri']) ?>" rel="noopener"><?= h($s['name']) ?></a><?php else: ?><?= h($s['name']) ?><?php endif; ?></th>
-              <?php if (isset($s['err'])): ?>
-                <td colspan="5">讀取失敗（<?= h($s['err']) ?>）</td>
-              <?php else: ?>
-                <td><?= ga_num($s['realtime'] ?? null) ?></td>
-                <td><?= ga_num($s['today']['users'] ?? null) ?></td>
-                <td><?= ga_num($s['yesterday']['users'] ?? null) ?></td>
-                <td><?= ga_num($s['week']['users'] ?? null) ?></td>
-                <td><?= ga_num($s['month']['users'] ?? null) ?></td>
-              <?php endif; ?>
-              <?php $sc = $s['search'] ?? ['err' => '未授權'];
-                // 剛建立的 Search Console 資源要過幾天才有數字；點擊、曝光都是 0 不要顯示成 0
-                if (!isset($sc['err']) && (int) $sc['clicks'] === 0 && (int) $sc['impressions'] === 0) { $sc = ['err' => '尚無資料']; } ?>
-              <?php if (isset($sc['err'])): ?>
-                <td colspan="3" class="soft"><?= h($sc['err']) ?></td>
-              <?php else: ?>
-                <td><?= ga_num($sc['clicks']) ?></td>
-                <td><?= ga_num($sc['impressions']) ?></td>
-                <td><?= h((string) $sc['position']) ?></td>
-              <?php endif; ?>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
+      <p class="note">大字是過去 7 天的使用者（到昨天），箭頭跟再前 7 天比；線是過去 30 天每天的人數，深色是最近 7 天，滑過或用左右鍵可看每一天。</p>
+      <div class="tiles">
+      <?php foreach ($gaLive as $s):
+        $wk = $s['week']['users'] ?? null; $dl = ga_delta($wk, $s['prev_week']['users'] ?? null);
+        $sc = $s['search'] ?? ['err' => '未授權'];
+        if (!isset($sc['err']) && (int) $sc['clicks'] === 0 && (int) $sc['impressions'] === 0) { $sc = ['err' => '尚無資料']; } ?>
+        <article class="tile">
+          <h3 class="tile-nm"><?php if (!empty($s['uri'])): ?><a href="<?= h($s['uri']) ?>" rel="noopener"><?= h($s['name']) ?></a><?php else: ?><?= h($s['name']) ?><?php endif; ?></h3>
+          <?php if (isset($s['err'])): ?>
+            <p class="note">讀取失敗（<?= h($s['err']) ?>）</p>
+          <?php else: ?>
+            <p class="tile-val"><?= h(ga_compact($wk)) ?><span class="tile-unit"> 人・7 天</span></p>
+            <?php if ($dl): ?><p class="tile-delta <?= h($dl['dir']) ?>"><span aria-hidden="true"><?= h($dl['text']) ?></span><span class="sr"><?= h($dl['word']) ?></span>（比前 7 天）</p><?php endif; ?>
+            <?= ga_spark($s['daily'] ?? [], $s['name']) ?>
+            <p class="tile-meta">即時 <b><?= ga_num($s['realtime'] ?? null) ?></b> ・ 30 天 <b><?= h(ga_compact($s['month']['users'] ?? null)) ?></b> ・ 搜尋點擊 <b><?= isset($sc['err']) ? h($sc['err']) : ga_num($sc['clicks']) ?></b></p>
+          <?php endif; ?>
+        </article>
+      <?php endforeach; ?>
       </div>
       <?php if ($gaQuiet): ?>
         <p class="note">過去 7 天沒有流量：<?= h(implode('、', array_map(fn($s) => $s['name'], $gaQuiet))) ?></p>
       <?php endif; ?>
-      <?php $scAny = array_values(array_filter(array_map(fn($s) => $s['search'] ?? null, $gaLive), fn($x) => $x && !isset($x['err']))); ?>
-      <p class="note">Google 搜尋的數字約晚 2 天<?= $scAny ? '（' . h(substr((string) $scAny[0]['from'], 5)) . '～' . h(substr((string) $scAny[0]['to'], 5)) . '）' : '' ?>；網域資源（例如 taiwanbible.com）每一列只算自己網址的網頁，所以跟 Search Console 整個資源的總數會有些微差異。「未授權」＝ Search Console 還沒把 cora@ccnda.org 加成使用者；「尚無資料」＝資源剛建立，Search Console 要幾天後才有數字。</p>
+      <details class="sheet">
+        <summary>表格檢視（所有數字：即時、今天、昨天、7 天、30 天、Google 搜尋）</summary>
+        <div class="tblwrap" role="region" aria-label="各網站使用者人數表格" tabindex="0">
+          <table class="tbl">
+            <caption class="sr">各網站使用者人數</caption>
+            <thead>
+              <tr><th scope="col" rowspan="2">網站</th><th scope="colgroup" colspan="5">使用者（Google Analytics）</th><th scope="colgroup" colspan="3">Google 搜尋（7 天）</th></tr>
+              <tr><th scope="col">即時</th><th scope="col">今天</th><th scope="col">昨天</th><th scope="col">7 天</th><th scope="col">30 天</th><th scope="col">點擊</th><th scope="col">曝光</th><th scope="col">平均排名</th></tr>
+            </thead>
+            <tbody>
+            <?php foreach ($gaLive as $s): $sc = $s['search'] ?? ['err' => '未授權'];
+              if (!isset($sc['err']) && (int) $sc['clicks'] === 0 && (int) $sc['impressions'] === 0) { $sc = ['err' => '尚無資料']; } ?>
+              <tr>
+                <th scope="row"><?= h($s['name']) ?></th>
+                <?php if (isset($s['err'])): ?><td colspan="5">讀取失敗（<?= h($s['err']) ?>）</td><?php else: ?>
+                <td><?= ga_num($s['realtime'] ?? null) ?></td><td><?= ga_num($s['today']['users'] ?? null) ?></td><td><?= ga_num($s['yesterday']['users'] ?? null) ?></td><td><?= ga_num($s['week']['users'] ?? null) ?></td><td><?= ga_num($s['month']['users'] ?? null) ?></td>
+                <?php endif; ?>
+                <?php if (isset($sc['err'])): ?><td colspan="3" class="soft"><?= h($sc['err']) ?></td><?php else: ?>
+                <td><?= ga_num($sc['clicks']) ?></td><td><?= ga_num($sc['impressions']) ?></td><td><?= h((string) $sc['position']) ?></td>
+                <?php endif; ?>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">「今天」GA 要處理幾個小時才有，還沒處理到的顯示「—」。Google 搜尋的數字約晚 2 天；網域資源每一列只算自己網址的網頁，跟 Search Console 總數會有些微差異。「未授權」＝ Search Console 還沒把 cora@ccnda.org 加成使用者；「尚無資料」＝資源剛建立。</p>
+      </details>
+      <script src="/assets/spark.js" defer></script>
     <?php endif; ?>
   </section>
 

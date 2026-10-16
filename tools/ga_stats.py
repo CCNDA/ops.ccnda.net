@@ -20,7 +20,8 @@ import get_sa_token  # noqa: E402
 # （只影響流量卡；jbear.net 仍在 Cloudflare 資安監控名單）
 # properties/389056386 聖經與世界瞭望（bibletower.net）——熊哥 10/16：「關閉了」
 # properties/391904745 站長工具箱、properties/392326265 基督徒工具——熊哥 10/16：「不需要計算流量」
-EXCLUDE = {"properties/311712282", "properties/389056386", "properties/391904745", "properties/392326265"}
+# properties/389657624 聖經網讀書會 - GA4：同一個站的第二個資源、沒有資料（有資料的是 356900008），留著會在「沒有流量」重複出現
+EXCLUDE = {"properties/311712282", "properties/389056386", "properties/391904745", "properties/392326265", "properties/389657624"}
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "state", "ga.json")
 get_sa_token.SCOPES = "https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly"
 
@@ -51,6 +52,18 @@ def ga_site(pid, tok):
     for r in rep.get("rows", []):
         k = r["dimensionValues"][0]["value"]
         out[k] = {"users": int(r["metricValues"][0]["value"]), "views": int(r["metricValues"][1]["value"])}
+    # 前 7 天（8～14 天前）：卡片上「比前 7 天」的增減（7 天使用者是不重複人數，不能拿每日相加來比）
+    prev = call(base + ":runReport", tok, {"dateRanges": [{"startDate": "14daysAgo", "endDate": "8daysAgo"}],
+                                           "metrics": [{"name": "activeUsers"}]})
+    out["prev_week"] = {"users": int(prev["rows"][0]["metricValues"][0]["value"]) if prev.get("rows") else None}
+    # 過去 30 天每日使用者（到昨天）：趨勢線；GA 沒有資料列的日期補 0
+    day = call(base + ":runReport", tok, {"dateRanges": [{"startDate": "30daysAgo", "endDate": "yesterday"}],
+                                          "dimensions": [{"name": "date"}], "metrics": [{"name": "activeUsers"}],
+                                          "orderBys": [{"dimension": {"dimensionName": "date"}}]})
+    got = {r["dimensionValues"][0]["value"]: int(r["metricValues"][0]["value"]) for r in day.get("rows", [])}
+    first = dt.date.today() - dt.timedelta(days=30)
+    days = [(first + dt.timedelta(days=i)).strftime("%Y%m%d") for i in range(30)]
+    out["daily"] = [[d, got.get(d, 0)] for d in days]
     return out
 
 
