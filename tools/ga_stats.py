@@ -19,7 +19,8 @@ import get_sa_token  # noqa: E402
 # properties/311712282 熊族大雜燴（jbear.net）——熊哥 10/16：「不用上，這個網站幾乎關閉指內部使用」
 # （只影響流量卡；jbear.net 仍在 Cloudflare 資安監控名單）
 # properties/389056386 聖經與世界瞭望（bibletower.net）——熊哥 10/16：「關閉了」
-EXCLUDE = {"properties/311712282", "properties/389056386"}
+# properties/391904745 站長工具箱、properties/392326265 基督徒工具——熊哥 10/16：「不需要計算流量」
+EXCLUDE = {"properties/311712282", "properties/389056386", "properties/391904745", "properties/392326265"}
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "state", "ga.json")
 get_sa_token.SCOPES = "https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly"
 
