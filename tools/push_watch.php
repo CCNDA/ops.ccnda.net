@@ -13,6 +13,8 @@ declare(strict_types=1);
  * - 數位同工:超過 90 分鐘沒有心跳(AGENTS_GREEN_MIN)推「停擺」,恢復時推「恢復」(2026-10-14 小布停 5 小時沒人收到通知)。
  * - 同工狀態檔由 cora-lab 的 agents_push.py 每 2 分鐘產生（10/15 從小芯電腦搬來）；超過 10 分鐘(AGENTS_STALE_SEC)沒更新,由這台自己推「蒐集中斷」,
  *   中斷期間不判斷各同工(檔案裡的時間會一起變舊,全部誤報停擺)。熊哥 10/15:「不能靠你自己監控…不然你掛了戰情室沒直接呈現」
+ * - Linode 主機：state/linode.json（cora-lab 的 linode_stats.py 每 5 分鐘產生）某台轉紅燈推「Linode 異常」，回綠／黃推「恢復」；
+ *   黃燈不推。檔案超過 20 分鐘(LINODE_STALE_SEC)沒更新推「蒐集中斷：Linode」，中斷期間不判斷各台（熊哥 10/16 裁示用網頁推播，Asana 1219561988862419）。
  * - 資安事件由其他程式呼叫 tools/push_send.php(CCNDA 沒有申請單,熊哥 10/14)。
  */
 
@@ -22,11 +24,13 @@ if (PHP_SAPI !== 'cli') {
 require __DIR__ . '/../lib/webpush.php';
 require __DIR__ . '/../lib/uptime.php';
 require __DIR__ . '/../lib/agents.php';
+require __DIR__ . '/../lib/linode.php';
 date_default_timezone_set('Asia/Taipei');
 
 const WATCH_FILE = PUSH_STATE_DIR . '/push_watch.json';
 const UPTIME_DOWN_MIN_SEC = 300;
 const ZBX_URL = 'http://127.0.0.1:8090/api_jsonrpc.php';
+const LINODE_STALE_SEC = 1200;
 
 $st = is_file(WATCH_FILE) ? (json_decode((string) file_get_contents(WATCH_FILE), true) ?: []) : [];
 
@@ -147,6 +151,39 @@ if ($token !== '') {
     } catch (Throwable $e) {
         error_log('[ops] push_watch zabbix: ' . $e->getMessage()); // 讀不到就保留上次狀態，下一分鐘再試
     }
+}
+
+// ---- Linode 主機 ----
+[$lin] = linode_data();
+$linAge = is_array($lin) ? time() - (int) ($lin['at'] ?? 0) : null;
+$linFeed = $linAge !== null && $linAge > LINODE_STALE_SEC ? 'stale' : 'ok';
+if ($linAge !== null && isset($st['linode_feed']) && $linFeed !== $st['linode_feed']) {
+    push_send($linFeed === 'stale'
+        ? ['title' => '蒐集中斷：Linode', 'body' => 'Linode 主機數據 ' . (int) round($linAge / 60) . ' 分鐘沒有更新（最後 '
+            . date('H:i', (int) $lin['at']) . '），cora-lab 的 linode_stats 排程可能停了', 'url' => '/#linode', 'tag' => 'linode-feed']
+        : ['title' => '恢復：Linode 數據', 'body' => 'linode_stats 又開始更新了', 'url' => '/#linode', 'tag' => 'linode-feed'], 'linode');
+}
+if ($linAge !== null) {
+    $st['linode_feed'] = $linFeed;
+}
+if (is_array($lin) && $linFeed === 'ok') {
+    $first = !isset($st['linode']);
+    $prev = $st['linode'] ?? [];
+    $now = [];
+    foreach ($lin['hosts'] as $h) {
+        $id = (string) $h['label'];
+        $now[$id] = ($h['cls'] ?? '') === 'bad' ? 'down' : 'up';   // 只有紅燈算異常，黃燈不推
+        if ($first) {
+            continue;
+        }
+        if ($now[$id] === 'down' && ($prev[$id] ?? 'up') !== 'down') {
+            push_send(['title' => 'Linode 異常：' . $id, 'body' => implode('、', $h['why'] ?? []) ?: '紅燈',
+                'url' => '/#linode', 'tag' => 'linode-' . $id], 'linode');
+        } elseif ($now[$id] === 'up' && ($prev[$id] ?? 'up') === 'down') {
+            push_send(['title' => '恢復：' . $id, 'body' => 'Linode 主機恢復正常', 'url' => '/#linode', 'tag' => 'linode-' . $id], 'linode');
+        }
+    }
+    $st['linode'] = $now;
 }
 
 $tmp = WATCH_FILE . '.tmp';
