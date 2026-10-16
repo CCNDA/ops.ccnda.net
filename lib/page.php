@@ -120,6 +120,8 @@ a:hover{text-decoration:underline}
 .tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.9rem}
 .tbl th,.tbl td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .tbl thead th{color:var(--soft);font-weight:600}
+.tbl thead th[scope=colgroup]{text-align:center;border-bottom:0}
+.tbl td.soft{color:var(--soft);text-align:center}
 .tbl th[scope=row],.tbl thead th:first-child{text-align:left;font-weight:500}
 /* 開發中專案 */
 .projs{display:grid;gap:10px}

@@ -346,22 +346,34 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
     </div>
     <?php if ($gaMsg !== ''): ?><div class="notice"><?= h($gaMsg) ?></div><?php endif; ?>
     <?php if ($ga): ?>
-      <p class="note">「即時」是最近 30 分鐘在線上的人。「今天」GA 要處理幾個小時才有（大流量的站可能要到隔天），還沒處理到的顯示「—」，不是 0 人。</p>
+      <p class="note">「即時」是最近 30 分鐘在線上的人；7 天、30 天都到昨天為止。「今天」GA 要處理幾個小時才有（大流量的站可能要到隔天），還沒處理到的顯示「—」，不是 0 人。</p>
       <div class="tblwrap" role="region" aria-label="各網站使用者人數" tabindex="0">
         <table class="tbl">
           <caption class="sr">各網站使用者人數</caption>
-          <thead><tr><th scope="col">網站</th><th scope="col">即時</th><th scope="col">今天</th><th scope="col">昨天</th><th scope="col">過去 7 天</th></tr></thead>
+          <thead>
+            <tr><th scope="col" rowspan="2">網站</th><th scope="colgroup" colspan="5">使用者（Google Analytics）</th><th scope="colgroup" colspan="3">Google 搜尋（7 天）</th></tr>
+            <tr><th scope="col">即時</th><th scope="col">今天</th><th scope="col">昨天</th><th scope="col">7 天</th><th scope="col">30 天</th><th scope="col">點擊</th><th scope="col">曝光</th><th scope="col">平均排名</th></tr>
+          </thead>
           <tbody>
           <?php foreach ($gaLive as $s): ?>
             <tr>
               <th scope="row"><?php if (!empty($s['uri'])): ?><a href="<?= h($s['uri']) ?>" rel="noopener"><?= h($s['name']) ?></a><?php else: ?><?= h($s['name']) ?><?php endif; ?></th>
               <?php if (isset($s['err'])): ?>
-                <td colspan="4">讀取失敗（<?= h($s['err']) ?>）</td>
+                <td colspan="5">讀取失敗（<?= h($s['err']) ?>）</td>
               <?php else: ?>
                 <td><?= ga_num($s['realtime'] ?? null) ?></td>
                 <td><?= ga_num($s['today']['users'] ?? null) ?></td>
                 <td><?= ga_num($s['yesterday']['users'] ?? null) ?></td>
                 <td><?= ga_num($s['week']['users'] ?? null) ?></td>
+                <td><?= ga_num($s['month']['users'] ?? null) ?></td>
+              <?php endif; ?>
+              <?php $sc = $s['search'] ?? ['err' => '未授權']; ?>
+              <?php if (isset($sc['err'])): ?>
+                <td colspan="3" class="soft"><?= h($sc['err']) ?></td>
+              <?php else: ?>
+                <td><?= ga_num($sc['clicks']) ?></td>
+                <td><?= ga_num($sc['impressions']) ?></td>
+                <td><?= h((string) $sc['position']) ?></td>
               <?php endif; ?>
             </tr>
           <?php endforeach; ?>
@@ -371,19 +383,8 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
       <?php if ($gaQuiet): ?>
         <p class="note">過去 7 天沒有流量：<?= h(implode('、', array_map(fn($s) => $s['name'], $gaQuiet))) ?></p>
       <?php endif; ?>
-      <?php foreach ($ga['search'] ?? [] as $sc): ?>
-        <h3 class="dev-cat">Google 搜尋：<?= h(preg_replace('#^https?://|/$#', '', (string) $sc['site'])) ?>（<?= h(substr((string) ($sc['from'] ?? ''), 5)) ?>～<?= h(substr((string) ($sc['to'] ?? ''), 5)) ?>）</h3>
-        <?php if (isset($sc['err'])): ?>
-          <div class="notice">讀取失敗（<?= h($sc['err']) ?>）</div>
-        <?php else: ?>
-          <div class="nums">
-            <span>點擊 <b><?= ga_num($sc['clicks']) ?></b></span>
-            <span>曝光 <b><?= ga_num($sc['impressions']) ?></b></span>
-            <span>點閱率 <b><?= h((string) $sc['ctr']) ?>%</b></span>
-            <span>平均排名 <b><?= h((string) $sc['position']) ?></b></span>
-          </div>
-        <?php endif; ?>
-      <?php endforeach; ?>
+      <?php $scAny = array_values(array_filter(array_map(fn($s) => $s['search'] ?? null, $gaLive), fn($x) => $x && !isset($x['err']))); ?>
+      <p class="note">Google 搜尋的數字約晚 2 天<?= $scAny ? '（' . h(substr((string) $scAny[0]['from'], 5)) . '～' . h(substr((string) $scAny[0]['to'], 5)) . '）' : '' ?>；「未授權」＝ Search Console 還沒把 cora@ccnda.org 加成使用者。</p>
     <?php endif; ?>
   </section>
 
