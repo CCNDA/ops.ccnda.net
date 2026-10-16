@@ -113,6 +113,14 @@ a:hover{text-decoration:underline}
 .dev-cat{font-size:.95rem;margin:12px 0 6px;color:var(--soft);font-weight:600}
 .devs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .devs .chip[open]{grid-column:1/-1}
+/* 網站流量（表格；手機上可左右捲，捲動區可用鍵盤聚焦） */
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.tblwrap{overflow-x:auto;margin:8px 0}
+.tblwrap:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.9rem}
+.tbl th,.tbl td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.tbl thead th{color:var(--soft);font-weight:600}
+.tbl th[scope=row],.tbl thead th:first-child{text-align:left;font-weight:500}
 /* 開發中專案 */
 .projs{display:grid;gap:10px}
 .card.proj{display:block}
