@@ -15,7 +15,10 @@ declare(strict_types=1);
  *   中斷期間不判斷各同工(檔案裡的時間會一起變舊,全部誤報停擺)。熊哥 10/15:「不能靠你自己監控…不然你掛了戰情室沒直接呈現」
  * - Linode 主機：state/linode.json（cora-lab 的 linode_stats.py 每 5 分鐘產生）某台轉紅燈推「Linode 異常」，回綠／黃推「恢復」；
  *   黃燈不推。檔案超過 20 分鐘(LINODE_STALE_SEC)沒更新推「蒐集中斷：Linode」，中斷期間不判斷各台（熊哥 10/16 裁示用網頁推播，Asana 1219561988862419）。
- * - 資安事件由其他程式呼叫 tools/push_send.php(CCNDA 沒有申請單,熊哥 10/14)。
+ * - 資安事件：state/cf.json（cora-lab 的 cf_watch.py 每 5 分鐘產生，CCNDA 14 個 Cloudflare zone 被擋請求數）某個 zone 轉 bad
+ *   推「資安：<網域> 被擋請求暴增」（附數字、門檻、前幾名國家與規則），回 ok 推「已回落」；cf.json 超過 20 分鐘沒更新推「蒐集中斷：Cloudflare」，
+ *   中斷期間不判斷各 zone（熊哥 10/16 裁示用 Cloudflare 防火牆事件；Asana 1219443887250576）。
+ *   其他程式仍可呼叫 tools/push_send.php（CCNDA 沒有申請單,熊哥 10/14）。
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -31,6 +34,8 @@ const WATCH_FILE = PUSH_STATE_DIR . '/push_watch.json';
 const UPTIME_DOWN_MIN_SEC = 300;
 const ZBX_URL = 'http://127.0.0.1:8090/api_jsonrpc.php';
 const LINODE_STALE_SEC = 1200;
+const CF_FILE = PUSH_STATE_DIR . '/cf.json';
+const CF_STALE_SEC = 1200;
 
 $st = is_file(WATCH_FILE) ? (json_decode((string) file_get_contents(WATCH_FILE), true) ?: []) : [];
 
@@ -184,6 +189,48 @@ if (is_array($lin) && $linFeed === 'ok') {
         }
     }
     $st['linode'] = $now;
+}
+
+// ---- 資安：Cloudflare 被擋請求暴增 ----
+$cf = is_file(CF_FILE) ? json_decode((string) file_get_contents(CF_FILE), true) : null;
+$cfAge = is_array($cf) ? time() - (int) ($cf['at'] ?? 0) : null;
+$cfFeed = $cfAge !== null && $cfAge > CF_STALE_SEC ? 'stale' : 'ok';
+if ($cfAge !== null && isset($st['cf_feed']) && $cfFeed !== $st['cf_feed']) {
+    push_send($cfFeed === 'stale'
+        ? ['title' => '蒐集中斷：Cloudflare', 'body' => '資安數據 ' . (int) round($cfAge / 60) . ' 分鐘沒有更新（最後 '
+            . date('H:i', (int) $cf['at']) . '），cora-lab 的 cf_watch 排程可能停了', 'url' => '/', 'tag' => 'cf-feed']
+        : ['title' => '恢復：Cloudflare 數據', 'body' => 'cf_watch 又開始更新了', 'url' => '/', 'tag' => 'cf-feed'], 'security');
+}
+if ($cfAge !== null) {
+    $st['cf_feed'] = $cfFeed;
+}
+if (is_array($cf) && $cfFeed === 'ok') {
+    $first = !isset($st['cf']);
+    $prev = $st['cf'] ?? [];
+    $now = [];
+    foreach ($cf['zones'] as $z) {
+        if (!isset($z['cls'])) {
+            continue;   // 這一輪讀失敗的 zone 保留上次狀態
+        }
+        $id = (string) $z['name'];
+        $now[$id] = $z['cls'] === 'bad' ? 'down' : 'up';
+        if ($first) {
+            continue;
+        }
+        if ($now[$id] === 'down' && ($prev[$id] ?? 'up') !== 'down') {
+            $extra = array_filter([
+                !empty($z['countries']) ? '來源 ' . implode('、', $z['countries']) : '',
+                !empty($z['rules']) ? '規則 ' . implode('、', $z['rules']) : '',
+            ]);
+            push_send(['title' => '資安：' . $id . ' 被擋請求暴增',
+                'body' => '5 分鐘被擋／挑戰 ' . number_format((int) $z['count']) . ' 次（門檻 ' . number_format((int) $z['thr']) . '）'
+                    . ($extra ? '；' . implode('；', $extra) : ''),
+                'url' => '/', 'tag' => 'cf-' . $id], 'security');
+        } elseif ($now[$id] === 'up' && ($prev[$id] ?? 'up') === 'down') {
+            push_send(['title' => '已回落：' . $id, 'body' => '被擋請求回到門檻以下', 'url' => '/', 'tag' => 'cf-' . $id], 'security');
+        }
+    }
+    $st['cf'] = $now + $prev;   // 這一輪讀失敗的 zone 沿用上次狀態
 }
 
 $tmp = WATCH_FILE . '.tmp';
