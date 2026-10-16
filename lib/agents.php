@@ -10,7 +10,7 @@ declare(strict_types=1);
  *   （10/12 改 60、10/13 依一晚心跳紀錄改回 90）
  *   第二道沿用早報：heartbeat_check.py 判讀不是 alive（今天 07:00 後沒有排程心跳等）＝標「今日未報到」
  *
- * 資料：state/agents.json —— 小芯電腦每 2 分鐘跑共用技能 heartbeat_check.py --json 傳上來（判讀不另寫一套）。
+ * 資料：state/agents.json —— cora-lab 每 2 分鐘跑共用技能 heartbeat_check.py --json 產生（判讀不另寫一套；10/15 從小芯電腦搬來）。
  *       這裡只在它上面加即時那層。檔案超過 10 分鐘沒更新＝蒐集端可能停了。
  */
 
@@ -43,7 +43,7 @@ function agent_groups(array $agents): array
 function agents_data(): array
 {
     if (!is_file(AGENTS_FILE)) {
-        return [null, '還沒有同工狀態資料（等小芯電腦的蒐集程式第一次傳上來）。'];
+        return [null, '還沒有同工狀態資料（等 cora-lab 的蒐集排程第一次跑）。'];
     }
     $d = json_decode((string) file_get_contents(AGENTS_FILE), true);
     if (!is_array($d) || !isset($d['rows'])) {
@@ -51,7 +51,7 @@ function agents_data(): array
     }
     $age = time() - (int) filemtime(AGENTS_FILE);
     $msg = $age > AGENTS_STALE_SEC
-        ? '同工狀態 ' . (int) round($age / 60) . ' 分鐘沒有更新，小芯電腦的蒐集程式可能停了；下面是 ' . date('H:i', (int) filemtime(AGENTS_FILE)) . ' 的資料。'
+        ? '同工狀態 ' . (int) round($age / 60) . ' 分鐘沒有更新，cora-lab 的蒐集排程可能停了；下面是 ' . date('H:i', (int) filemtime(AGENTS_FILE)) . ' 的資料。'
         : '';
     if (!empty($d['unlisted'])) {
         $msg .= ($msg ? ' ' : '') . '共用硬碟有不在名單裡的心跳：' . implode('、', $d['unlisted']) . '（heartbeat_check.py 的名單要補）。';

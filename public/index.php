@@ -9,7 +9,7 @@ declare(strict_types=1);
  * （Google Workspace，限 @ccnda.org）把關。Asana 1219371344401545、1219390021775751。
  * - 任務：tools/asana_summary.py 每小時寫 state/asana_summary.json，這裡只讀檔（不碰權杖）
  * - 網站監控：lib/uptime.php（UptimeRobot 唯讀金鑰在 state/，快取 60 秒）；詳情在 uptime.php
- * - 數位同工：lib/agents.php（小芯電腦每 2 分鐘傳 state/agents.json；超過 90 分鐘沒心跳＝紅燈＋推播）
+ * - 數位同工：lib/agents.php（cora-lab 每 2 分鐘產生 state/agents.json；超過 90 分鐘沒心跳＝紅燈＋推播）
  * - 頁面每 60 秒自動重新整理（媽媽 2026-10-11 信：頁面每分鐘自動刷新）
  */
 
