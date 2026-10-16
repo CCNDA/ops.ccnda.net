@@ -367,7 +367,9 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
                 <td><?= ga_num($s['week']['users'] ?? null) ?></td>
                 <td><?= ga_num($s['month']['users'] ?? null) ?></td>
               <?php endif; ?>
-              <?php $sc = $s['search'] ?? ['err' => '未授權']; ?>
+              <?php $sc = $s['search'] ?? ['err' => '未授權'];
+                // 剛建立的 Search Console 資源要過幾天才有數字；點擊、曝光都是 0 不要顯示成 0
+                if (!isset($sc['err']) && (int) $sc['clicks'] === 0 && (int) $sc['impressions'] === 0) { $sc = ['err' => '尚無資料']; } ?>
               <?php if (isset($sc['err'])): ?>
                 <td colspan="3" class="soft"><?= h($sc['err']) ?></td>
               <?php else: ?>
@@ -384,7 +386,7 @@ page_head('CCNDA 戰情室', '內部使用 ・ ' . date('Y-m-d H:i') . ' 從 cor
         <p class="note">過去 7 天沒有流量：<?= h(implode('、', array_map(fn($s) => $s['name'], $gaQuiet))) ?></p>
       <?php endif; ?>
       <?php $scAny = array_values(array_filter(array_map(fn($s) => $s['search'] ?? null, $gaLive), fn($x) => $x && !isset($x['err']))); ?>
-      <p class="note">Google 搜尋的數字約晚 2 天<?= $scAny ? '（' . h(substr((string) $scAny[0]['from'], 5)) . '～' . h(substr((string) $scAny[0]['to'], 5)) . '）' : '' ?>；網域資源（例如 taiwanbible.com）每一列只算自己網址的網頁，所以跟 Search Console 整個資源的總數會有些微差異。「未授權」＝ Search Console 還沒把 cora@ccnda.org 加成使用者。</p>
+      <p class="note">Google 搜尋的數字約晚 2 天<?= $scAny ? '（' . h(substr((string) $scAny[0]['from'], 5)) . '～' . h(substr((string) $scAny[0]['to'], 5)) . '）' : '' ?>；網域資源（例如 taiwanbible.com）每一列只算自己網址的網頁，所以跟 Search Console 整個資源的總數會有些微差異。「未授權」＝ Search Console 還沒把 cora@ccnda.org 加成使用者；「尚無資料」＝資源剛建立，Search Console 要幾天後才有數字。</p>
     <?php endif; ?>
   </section>
 

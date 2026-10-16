@@ -8,6 +8,7 @@ CCNDA 戰情室 ops.ccnda.net 每一版的重點變更。版本號採 `主版本
 ## [1.16.1] - 2026-10-16 —— Google 搜尋每列只算自己的網址
 
 - 熊哥加了 4 個 Search Console 網域資源（ccnda.org、oursweb.net、taiwanbible.com、loveuno.com）。網域資源會把子網域、子路徑加在一起（taiwanbible.com 會連讀書會、點數中心一起算），改成每一列用網頁網址篩選只算自己；同主機的子路徑（點數中心 /point/）從主站那列排除（Asana 1219379138644448）
+- 點擊、曝光都是 0 的顯示「尚無資料」：biblesearch.com.tw 的網域資源剛建立，不篩選、往前 30 天都沒有任何網頁資料，要等 Search Console 收集幾天
 - 實查：taiwanbible.com 整個網域曝光 228,150，三列分開後合計 202,321（差額是不在流量表上的其他子網域）；依網頁統計的點擊會比依資源統計略多（三列 6,289 對整個網域 6,186），是 Search Console 的計算方式，卡片上註明
 
 ## [1.16.0] - 2026-10-16 —— 網站流量加 30 天，Google 搜尋併進同一張表
